@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # The point of running on all three is that tmon has two separate capture
+  # implementations behind build tags -- the Windows pseudoconsole and the
+  # POSIX pty -- and building on one proves nothing about the other. Until
+  # this workflow runs, the POSIX path has only ever been compiled, never
+  # executed.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l ./cmd ./internal)
+          if [ -n "$unformatted" ]; then
+            echo "not gofmt'd:"; echo "$unformatted"; exit 1
+          fi
+      - run: go vet ./...
+
+  # Every release target has to keep compiling, including the ones no test
+  # job covers.
+  crosscheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: |
+          for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 \
+                   linux/amd64 linux/arm64; do
+            echo "== $t"
+            GOOS=${t%/*} GOARCH=${t#*/} go build -o /dev/null ./cmd/tmon
+          done

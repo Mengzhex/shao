@@ -1,0 +1,51 @@
+name: release
+
+# Pushing a tag is the whole release procedure. There is no upload step and no
+# registry account anywhere: Go's module proxy pulls from this repository, and
+# every package manifest (Scoop, Homebrew, winget) only holds a URL pointing at
+# the assets this workflow attaches.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # required to create the release and attach assets
+
+jobs:
+  # Releases are gated on the tests passing on all three platforms. A build
+  # that cannot pass its own tests on macOS should not be downloadable as a
+  # macOS binary.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scripts/release.sh falls back to `git describe`
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build release assets
+        run: bash scripts/release.sh "$GITHUB_REF_NAME"
+
+      # Asset names carry no version, so the /releases/latest/download/ URLs in
+      # the README keep working across releases without being edited.
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
