@@ -1,4 +1,27 @@
+# Build output. scripts/release.sh rebuilds dist/ from scratch every run, so
+# nothing in it is worth keeping, and the archives are several MB each.
 /dist/
 /tmon
 /tmon.exe
+/tmon-probe-*
+
+# Test and profiling artifacts
 *.test
+coverage.out
+cover.out
+*.prof
+
+# Go workspace files describe one machine's checkout layout and break everyone
+# else's build if committed.
+go.work
+go.work.sum
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS metadata, mostly relevant once anyone clones this on macOS
+.DS_Store
+Thumbs.db

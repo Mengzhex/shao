@@ -3,7 +3,15 @@
 ## Status
 
 Builds, vets and tests clean on `windows/amd64` with Go 1.26.7, and
-cross-compiles for `linux/{amd64,arm64}` and `darwin/{amd64,arm64}`.
+cross-compiles for `windows/arm64`, `linux/{amd64,arm64}` and
+`darwin/{amd64,arm64}`.
+
+`.github/workflows/ci.yml` runs the suite on windows, ubuntu and macos
+runners. That matters more than it looks: capture has two implementations
+behind build tags -- ConPTY and the POSIX pty -- so passing on one platform
+proves nothing about the other. Until that workflow has actually run, the
+POSIX path has only ever been compiled here, never executed, because this
+machine has no Linux or macOS to run it on.
 
 Verified end to end on Windows against the real binary:
 
@@ -151,38 +159,94 @@ exports `GOROOT` and `GO` so no shell needs to be activated:
 Then:
 
 ```sh
-make build        # tmon for this platform
-make probe        # Linux probe binaries to upload to target hosts
-make dist         # release binaries for every platform
-make crosscheck   # compile all platforms, produce nothing
-make test
+"$GO" build -o tmon.exe ./cmd/tmon    # this platform
+"$GO" test ./...
+"$GO" vet ./...
+"$GOFMT" -l ./cmd ./internal          # prints nothing when clean
+bash scripts/release.sh               # every release artifact, into dist/
 ```
 
-To build elsewhere, override the prefix or just point at a normal Go install:
+The `Makefile` wraps the same commands (`make build`, `make test`, `make
+dist`, `make crosscheck`), but **`make` is not installed on this machine**, so
+the commands above are the ones that actually work here. On a machine that has
+it, override the toolchain location or point at a normal Go install:
 
 ```sh
 make build CONDA_ENV_PREFIX=/path/to/env
 make build GO=go GOROOT=
 ```
 
+`scripts/release.sh` finds the toolchain the same way: it sources
+`scripts/goenv.sh`, checks whether the resulting `$GO` actually runs, and falls
+back to `go` on `PATH`. That is what lets one script serve both this machine
+and a CI runner.
+
 ## The probe binary
 
 The probe is not a separate program. `cmd/tmon` switches into probe mode when
 it is invoked under a name starting with `tmon-probe`, which is how sshd runs
-it as a forced command. So `make probe` is just a Linux cross-compile of the
-same source, and there is one binary to keep in step rather than two.
+it as a forced command. So the probe is just a Linux cross-compile of the same
+source, and there is one binary to keep in step rather than two.
+`scripts/release.sh` builds both architectures as part of a normal release.
 
 ## Release layout
 
-`make dist` produces:
+`bash scripts/release.sh [VERSION]` produces:
 
 ```
-dist/tmon-windows-amd64.exe     dist/tmon-linux-amd64
-dist/tmon-windows-arm64.exe     dist/tmon-linux-arm64
-dist/tmon-darwin-amd64          dist/tmon-probe-linux-amd64
-dist/tmon-darwin-arm64          dist/tmon-probe-linux-arm64
+dist/tmon_windows_amd64.zip     dist/tmon_linux_amd64.tar.gz
+dist/tmon_windows_arm64.zip     dist/tmon_linux_arm64.tar.gz
+dist/tmon_darwin_amd64.tar.gz   dist/tmon-probe-linux-amd64
+dist/tmon_darwin_arm64.tar.gz   dist/tmon-probe-linux-arm64
+dist/checksums.txt
 ```
 
-`tmon host add` looks for a probe binary next to the tmon executable or in
-`~/.tmon/probe/`, so shipping `tmon-probe-linux-amd64` alongside tmon makes
-host setup a copy-and-paste rather than a build step.
+Three decisions are worth knowing, because each one is load-bearing somewhere
+else:
+
+**Asset names carry no version.** That is what makes
+`https://github.com/OWNER/tmon/releases/latest/download/tmon_linux_amd64.tar.gz`
+always resolve to the newest release, so the install commands in the README do
+not have to be edited on every release and a Scoop or Homebrew manifest only
+has to change its hash. The tag is still stamped into the binary through
+`-ldflags`, and `tmon version` reports it.
+
+**Archives contain the binary and nothing else.** The README's install
+commands extract straight into a directory on `PATH`, so a bundled licence or
+README would land in the user's `~/bin` next to the executable.
+
+**The probe ships as a bare binary, not an archive.** It gets copied to a
+target host with `scp`, where an archive would only add a step. `tmon host add`
+looks for it next to the tmon executable or in `~/.tmon/probe/`, so shipping it
+alongside tmon makes host setup a copy-and-paste rather than a build step.
+
+Packaging tools differ by machine, so the script checks rather than assumes:
+`zip` when present, otherwise bsdtar, which libarchive lets write zip files.
+This machine has neither `make` nor `zip` but does ship bsdtar in
+`C:\Windows\System32`.
+
+## Cutting a release
+
+Pushing a tag is the entire procedure. There is no upload step and no registry
+account anywhere: Go's module proxy pulls from the repository, and every
+package manifest (Scoop, Homebrew, winget) holds only a URL pointing at the
+assets below.
+
+```sh
+git tag v0.1.0
+git push origin main --tags
+```
+
+`.github/workflows/release.yml` then runs the test suite on all three
+platforms, and only if that passes does it build the artifacts and create the
+release. A build that cannot pass its own tests on macOS should not be
+downloadable as a macOS binary.
+
+To do it by hand instead, with the `gh` CLI:
+
+```sh
+bash scripts/release.sh v0.1.0
+gh release create v0.1.0 dist/* --generate-notes
+```
+
+`gh` is not installed on this machine; `winget install GitHub.cli` adds it.

@@ -132,7 +132,7 @@ macOS 上用 `shasum -a 256 --ignore-missing -c checksums.txt`。Windows 上自�
 ```sh
 git clone https://github.com/OWNER/tmon.git
 cd tmon
-make build
+go build -o tmon ./cmd/tmon
 ```
 
 交叉编译和发布目标见 [docs/BUILD.md](docs/BUILD.md)(英文)。

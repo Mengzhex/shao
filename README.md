@@ -180,7 +180,7 @@ Go 1.25 or newer:
 ```sh
 git clone https://github.com/OWNER/tmon.git
 cd tmon
-make build
+go build -o tmon ./cmd/tmon
 ```
 
 See [docs/BUILD.md](docs/BUILD.md) for cross-compilation and the release
