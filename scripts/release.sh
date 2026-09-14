@@ -38,6 +38,17 @@ fi
 VERSION="${1:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}"
 LDFLAGS="-s -w -X main.buildVersion=$VERSION"
 
+# Static binaries on every target, regardless of the build host.
+#
+# Cross-compiling implies CGO_ENABLED=0, so building on Windows produced static
+# Linux binaries and the README's "runs on Alpine too" was true. Building the
+# same target natively on a Linux runner does not: a C toolchain is present, so
+# cgo is on by default and net/os-user link against glibc. v0.1.0 shipped a
+# Linux binary with PT_INTERP=/lib64/ld-linux-x86-64.so.2, which dies on musl
+# with the famously unhelpful "no such file or directory" -- naming the missing
+# interpreter, not the binary. Nothing here needs cgo.
+export CGO_ENABLED=0
+
 DIST="$ROOT/dist"
 STAGE="$DIST/.stage"
 rm -rf "$DIST"
