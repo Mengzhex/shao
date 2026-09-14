@@ -16,13 +16,18 @@ cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
 # Go lives in a conda env on the development machine and on PATH everywhere
-# else. Sourcing goenv.sh is harmless when that path does not exist, since the
-# result is checked before use.
+# else; goenv.sh resolves that and exports nothing machine-specific when the
+# conda prefix is absent.
 if [ -f scripts/goenv.sh ]; then
 	# shellcheck source=/dev/null
 	. scripts/goenv.sh
 fi
 if ! "${GO:-}" version >/dev/null 2>&1; then
+	# Belt and braces for an inherited environment: a GOROOT naming a
+	# toolchain that is not on this machine breaks the one that is, with
+	# "cannot find GOROOT directory" and exit 2, so drop it before falling
+	# back to PATH.
+	unset GOROOT
 	GO=go
 fi
 "$GO" version >/dev/null 2>&1 || {

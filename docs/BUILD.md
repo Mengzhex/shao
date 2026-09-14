@@ -181,6 +181,12 @@ make build GO=go GOROOT=
 back to `go` on `PATH`. That is what lets one script serve both this machine
 and a CI runner.
 
+`goenv.sh` exports `GOROOT` **only when the conda prefix actually exists**.
+Exporting one that does not is worse than exporting none: it breaks the
+toolchain that *is* installed, with `go: cannot find GOROOT directory` and exit
+2. The first CI run found this the hard way, failing with "no usable Go
+toolchain" while Go sat on the runner's `PATH`.
+
 ## The probe binary
 
 The probe is not a separate program. `cmd/tmon` switches into probe mode when
