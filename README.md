@@ -127,13 +127,13 @@ your `PATH`, done.
 Linux and macOS — including a server you have just sshed into:
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/install.sh | sh
 ```
 
 Windows, in PowerShell:
 
 ```powershell
-irm https://github.com/OWNER/tmon/releases/latest/download/install.ps1 | iex
+irm https://github.com/Mengzhex/tmon/releases/latest/download/install.ps1 | iex
 ```
 
 Both detect your platform, verify the download against `checksums.txt`,
@@ -168,7 +168,7 @@ amd64, `aarch64` or `arm64` means arm64.
 ```powershell
 $dest = "$HOME\bin"
 New-Item -ItemType Directory -Force $dest | Out-Null
-$url = 'https://github.com/OWNER/tmon/releases/latest/download/tmon_windows_amd64.zip'
+$url = 'https://github.com/Mengzhex/tmon/releases/latest/download/tmon_windows_amd64.zip'
 Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\tmon.zip"
 Expand-Archive -Force "$env:TEMP\tmon.zip" -DestinationPath $dest
 ```
@@ -186,7 +186,7 @@ if ($user -notlike "*$dest*") {
 ### Linux
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/tmon_linux_amd64.tar.gz | tar xz
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/tmon_linux_amd64.tar.gz | tar xz
 install -Dm755 tmon ~/.local/bin/tmon
 ```
 
@@ -203,7 +203,7 @@ everyone on the machine.
 ### macOS
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/tmon_darwin_arm64.tar.gz | tar xz
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/tmon_darwin_arm64.tar.gz | tar xz
 mkdir -p /usr/local/bin && install -m755 tmon /usr/local/bin/tmon
 ```
 
@@ -225,7 +225,7 @@ left for you to discover.
 Each release includes `checksums.txt`. On Linux:
 
 ```sh
-curl -fsSLO https://github.com/OWNER/tmon/releases/latest/download/checksums.txt
+curl -fsSLO https://github.com/Mengzhex/tmon/releases/latest/download/checksums.txt
 sha256sum --ignore-missing -c checksums.txt
 ```
 
@@ -241,7 +241,7 @@ compare the hash yourself:
 Go 1.25 or newer:
 
 ```sh
-git clone https://github.com/OWNER/tmon.git
+git clone https://github.com/Mengzhex/tmon.git
 cd tmon
 go build -o tmon ./cmd/tmon
 ```

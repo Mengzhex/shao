@@ -6,7 +6,7 @@ tmon installer for Windows.
 Downloads the latest release, verifies its checksum, installs it, and puts the
 install directory on the user PATH.
 
-    irm https://github.com/OWNER/tmon/releases/latest/download/install.ps1 | iex
+    irm https://github.com/Mengzhex/tmon/releases/latest/download/install.ps1 | iex
 
 .PARAMETER InstallDir
 Where to put tmon.exe. Defaults to $HOME\bin.
@@ -21,7 +21,7 @@ owner/name, if you forked it.
 param(
     [string]$InstallDir = "$HOME\bin",
     [string]$Version = 'latest',
-    [string]$Repo = 'OWNER/tmon'
+    [string]$Repo = 'Mengzhex/tmon'
 )
 
 $ErrorActionPreference = 'Stop'

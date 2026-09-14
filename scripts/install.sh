@@ -1,7 +1,7 @@
 #!/bin/sh
 # tmon installer for Linux and macOS.
 #
-#   curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/install.sh | sh
 #
 # Environment:
 #   TMON_INSTALL_DIR   where to put the binary. Default: ~/.local/bin, or
@@ -13,7 +13,7 @@
 # script is that it runs on a machine you have not prepared.
 set -eu
 
-REPO="${TMON_REPO:-OWNER/tmon}"
+REPO="${TMON_REPO:-Mengzhex/tmon}"
 VERSION="${TMON_VERSION:-latest}"
 
 say() { printf '%s\n' "$*"; }

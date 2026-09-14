@@ -67,13 +67,13 @@ tmon 是一个单文件二进制,没有运行时依赖。下载、放到 `PATH` 
 Linux 和 macOS——包括你刚 ssh 进去的服务器:
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/install.sh | sh
 ```
 
 Windows,在 PowerShell 里:
 
 ```powershell
-irm https://github.com/OWNER/tmon/releases/latest/download/install.ps1 | iex
+irm https://github.com/Mengzhex/tmon/releases/latest/download/install.ps1 | iex
 ```
 
 两个脚本都会自动识别平台、用 `checksums.txt` 校验下载、装到 `~/.local/bin`
@@ -105,7 +105,7 @@ irm https://github.com/OWNER/tmon/releases/latest/download/install.ps1 | iex
 ```powershell
 $dest = "$HOME\bin"
 New-Item -ItemType Directory -Force $dest | Out-Null
-$url = 'https://github.com/OWNER/tmon/releases/latest/download/tmon_windows_amd64.zip'
+$url = 'https://github.com/Mengzhex/tmon/releases/latest/download/tmon_windows_amd64.zip'
 Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\tmon.zip"
 Expand-Archive -Force "$env:TEMP\tmon.zip" -DestinationPath $dest
 ```
@@ -122,7 +122,7 @@ if ($user -notlike "*$dest*") {
 ### Linux
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/tmon_linux_amd64.tar.gz | tar xz
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/tmon_linux_amd64.tar.gz | tar xz
 install -Dm755 tmon ~/.local/bin/tmon
 ```
 
@@ -137,7 +137,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ### macOS
 
 ```sh
-curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/tmon_darwin_arm64.tar.gz | tar xz
+curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/tmon_darwin_arm64.tar.gz | tar xz
 mkdir -p /usr/local/bin && install -m755 tmon /usr/local/bin/tmon
 ```
 
@@ -154,7 +154,7 @@ xattr -d com.apple.quarantine /usr/local/bin/tmon
 每次发布都带一个 `checksums.txt`。Linux 上:
 
 ```sh
-curl -fsSLO https://github.com/OWNER/tmon/releases/latest/download/checksums.txt
+curl -fsSLO https://github.com/Mengzhex/tmon/releases/latest/download/checksums.txt
 sha256sum --ignore-missing -c checksums.txt
 ```
 
@@ -169,7 +169,7 @@ macOS 上用 `shasum -a 256 --ignore-missing -c checksums.txt`。Windows 上自�
 需要 Go 1.25 或更新:
 
 ```sh
-git clone https://github.com/OWNER/tmon.git
+git clone https://github.com/Mengzhex/tmon.git
 cd tmon
 go build -o tmon ./cmd/tmon
 ```

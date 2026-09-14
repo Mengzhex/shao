@@ -2,7 +2,7 @@
 # Builds every release artifact into dist/, plus checksums.txt.
 #
 # Asset names carry no version. That is deliberate: it makes
-#   https://github.com/OWNER/tmon/releases/latest/download/<name>
+#   https://github.com/Mengzhex/tmon/releases/latest/download/<name>
 # always resolve to the newest release, so the install commands in the README
 # never go stale and a Scoop or Homebrew manifest only has to change its hash.
 # The tag is still stamped into the binary through -ldflags, and `tmon version`
@@ -60,7 +60,16 @@ archive_zip() { # $1=out  $2=dir  $3=file
 }
 
 archive_tgz() { # $1=out  $2=dir  $3=file
-	tar -c -z -f "$1" -C "$2" "$3"
+	# The executable bit has to be written into the archive rather than set on
+	# the file: chmod is a no-op on NTFS through MSYS, so building on Windows
+	# otherwise produces a tarball that extracts 0644 and gives "permission
+	# denied" on the server. GNU tar can override the stored mode; bsdtar
+	# cannot, but bsdtar here means macOS, where the chmod above did work.
+	if tar --version 2>&1 | grep -qi 'GNU tar'; then
+		tar --mode=0755 -c -z -f "$1" -C "$2" "$3"
+	else
+		tar -c -z -f "$1" -C "$2" "$3"
+	fi
 }
 
 echo "tmon $VERSION"
@@ -75,6 +84,12 @@ for target in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 
 	rm -f "$STAGE/$bin"
 	GOOS="$os" GOARCH="$arch" "$GO" build -trimpath -ldflags "$LDFLAGS" \
 		-o "$STAGE/$bin" ./cmd/tmon
+
+	# Force the executable bit into the archive. Go writes 0755 when building
+	# on Linux, but building on Windows produces a file that tars as 0644, and
+	# extracting that on a server gives "permission denied" from a release that
+	# looked fine to whoever cut it.
+	chmod 0755 "$STAGE/$bin"
 
 	# Binary-only archives. Anything else would land in the user's ~/bin
 	# alongside it, because the README's install commands extract straight
@@ -104,10 +119,12 @@ done
 rmdir "$STAGE"
 
 # The installers ship as release assets so that the one-liner in the README is
-# a single URL. Both carry OWNER/tmon as a placeholder in the repository; the
-# real slug is stamped in here, from $GITHUB_REPOSITORY when a workflow is
-# running and from the origin remote otherwise. That way nothing has to be
-# hand-edited at release time and a fork's installer points at the fork.
+# a single URL. They name this repository directly, which keeps them runnable
+# straight from a clone; the slug is rewritten here when it differs, taken from
+# $GITHUB_REPOSITORY under Actions and from the origin remote otherwise, so a
+# fork publishes an installer pointing at the fork with nothing to remember.
+DEFAULT_SLUG="Mengzhex/tmon"
+
 slug="${GITHUB_REPOSITORY:-}"
 if [ -z "$slug" ]; then
 	origin=$(git remote get-url origin 2>/dev/null || true)
@@ -120,14 +137,15 @@ if [ -z "$slug" ]; then
 	esac
 fi
 for f in install.sh install.ps1; do
-	if [ -n "$slug" ]; then
-		sed "s|OWNER/tmon|$slug|g" "scripts/$f" >"$DIST/$f"
+	if [ -n "$slug" ] && [ "$slug" != "$DEFAULT_SLUG" ]; then
+		sed "s|$DEFAULT_SLUG|$slug|g" "scripts/$f" >"$DIST/$f"
+		echo "  note: $f retargeted to $slug" >&2
 	else
 		cp "scripts/$f" "$DIST/$f"
-		echo "  note: no GitHub slug found, $f keeps the OWNER placeholder" >&2
 	fi
 	chmod 0755 "$DIST/$f"
-	printf '  %-28s\n' "$f"
+	printf '  %-28s
+' "$f"
 done
 
 # checksums.txt is what `sha256sum -c` and the package manifests both read.

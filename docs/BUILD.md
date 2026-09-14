@@ -212,7 +212,7 @@ Three decisions are worth knowing, because each one is load-bearing somewhere
 else:
 
 **Asset names carry no version.** That is what makes
-`https://github.com/OWNER/tmon/releases/latest/download/tmon_linux_amd64.tar.gz`
+`https://github.com/Mengzhex/tmon/releases/latest/download/tmon_linux_amd64.tar.gz`
 always resolve to the newest release, so the install commands in the README do
 not have to be edited on every release and a Scoop or Homebrew manifest only
 has to change its hash. The tag is still stamped into the binary through
@@ -228,12 +228,11 @@ looks for it next to the tmon executable or in `~/.tmon/probe/`, so shipping it
 alongside tmon makes host setup a copy-and-paste rather than a build step.
 
 **The installers are stamped, not hand-edited.** `scripts/install.sh` and
-`scripts/install.ps1` carry `OWNER/tmon` as a placeholder in the repository.
-`scripts/release.sh` substitutes the real slug when it copies them into
-`dist/`, taking it from `$GITHUB_REPOSITORY` under Actions and from the
-`origin` remote otherwise. A fork therefore publishes an installer pointing at
-the fork, with nothing to remember at release time. Building with neither
-available leaves the placeholder and says so on stderr.
+`scripts/install.ps1` name this repository directly, so they run straight from
+a clone. `scripts/release.sh` rewrites that slug when it copies them into
+`dist/` and the real one differs, taking it from `$GITHUB_REPOSITORY` under
+Actions and from the `origin` remote otherwise. A fork therefore publishes an
+installer pointing at the fork, with nothing to remember at release time.
 
 Packaging tools differ by machine, so the script checks rather than assumes:
 `zip` when present, otherwise bsdtar, which libarchive lets write zip files.
