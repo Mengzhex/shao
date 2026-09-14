@@ -125,14 +125,37 @@ fi
 say "tmon: installed to $dest/tmon"
 "$dest/tmon" version || true
 
-# ---------------------------------------------------------------- PATH advice
+# ------------------------------------------------------ PATH, and shadowing
+#
+# Two different problems look identical from the prompt: the directory is not
+# on PATH, or it is but another program named tmon comes first. The second is
+# not hypothetical. The Linux kernel's thermal monitor is also called tmon,
+# ships as /usr/bin/tmon in linux-tools / linux-misc-tools, and answers
+# `tmon start` with "TMON needs to be run as root" -- which reads as this
+# program refusing to start, rather than as a different program entirely.
 
+found=$(command -v tmon 2>/dev/null || true)
 case ":$PATH:" in
-*":$dest:"*) ;;
+*":$dest:"*)
+	if [ -n "$found" ] && [ "$found" != "$dest/tmon" ]; then
+		say ""
+		say "Warning: a different program named tmon is already on your PATH:"
+		say "  $found"
+		say "It comes before $dest, so typing 'tmon' runs that one. Either call"
+		say "this one by path:"
+		say "  $dest/tmon start"
+		say "or put $dest first:"
+		say "  echo 'export PATH=\"$dest:\$PATH\"' >> ~/.bashrc && exec \$SHELL"
+	fi
+	;;
 *)
 	say ""
 	say "$dest is not on your PATH. Add it:"
 	say "  echo 'export PATH=\"$dest:\$PATH\"' >> ~/.bashrc && exec \$SHELL"
+	if [ -n "$found" ]; then
+		say ""
+		say "Note: '$found' is a different program that happens to share the name."
+	fi
 	;;
 esac
 

@@ -200,6 +200,14 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 Use `sudo install -Dm755 tmon /usr/local/bin/tmon` instead to install it for
 everyone on the machine.
 
+**A name clash worth knowing about.** The Linux kernel's thermal monitor is
+also called `tmon` and ships as `/usr/bin/tmon` in `linux-tools` /
+`linux-misc-tools`. If `tmon start` answers *"TMON needs to be run as root"*,
+you reached that program, not this one — `~/.local/bin` is either absent from
+your `PATH` or comes after `/usr/bin`. `type -a tmon` shows every match in
+order. Put your own directory first, or call it by path. This one never needs
+root.
+
 ### macOS
 
 ```sh

@@ -134,6 +134,13 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
 想让整台机器都能用,改成 `sudo install -Dm755 tmon /usr/local/bin/tmon`。
 
+**有一个同名冲突值得知道。** Linux 内核的温度监控工具也叫 `tmon`,在
+`linux-tools` / `linux-misc-tools` 包里,装在 `/usr/bin/tmon`。如果
+`tmon start` 回你一句 *"TMON needs to be run as root"*,那说明你敲到的是**那个
+程序**,不是这个——你的 `~/.local/bin` 要么不在 `PATH` 上,要么排在 `/usr/bin`
+后面。用 `type -a tmon` 可以按顺序看到所有同名命令。把自己的目录放到前面,或者
+用完整路径调用。**这个 tmon 永远不需要 root。**
+
 ### macOS
 
 ```sh
