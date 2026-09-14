@@ -40,17 +40,21 @@ jobs:
       - run: go vet ./...
 
   # Every release target has to keep compiling, including the ones no test
-  # job covers.
-  crosscheck:
+  # job covers. This also produces downloadable builds of main, so a server
+  # can be given a binary before any version has been tagged -- the artifact
+  # is retained for 14 days and is reachable from the run's summary page.
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scripts/release.sh reads `git describe`
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: |
-          for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 \
-                   linux/amd64 linux/arm64; do
-            echo "== $t"
-            GOOS=${t%/*} GOARCH=${t#*/} go build -o /dev/null ./cmd/tmon
-          done
+      - run: bash scripts/release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tmon-dist
+          path: dist/
+          retention-days: 14

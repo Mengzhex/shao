@@ -35,6 +35,45 @@ Two things it is for:
   doing — so the advice is grounded in that machine rather than generic. The
   assistant writes the commands; **you** run them.
 
+## What makes it different
+
+Other MCP servers give an assistant a terminal. They are solving the opposite
+problem: they hand the model a shell of its own and let it run commands in it.
+tmon lets it read *yours*, and it cannot run anything at all. Five things
+follow from that.
+
+**Nothing is sampled, and completeness is checkable.** Capture is the byte
+stream through the pty, so output that scrolled past faster than you could
+read it is still there in full. More usefully, every read says whether the
+ring had already discarded older output (`truncated`) and, separately,
+whether a real discontinuity was found (`gap_detected`). "Nothing is missing"
+is a claim you can check rather than a promise.
+
+**Read-only is enforced by sshd, not by us.** The restriction is not "we did
+not register an exec tool" — it is a forced command on the key, so sshd
+discards whatever an SSH client asks to run. It holds even if everything on
+this side were compromised, and `tmon host verify` proves it by *trying*: run
+a command, read `/etc/passwd`, create a file, allocate a terminal, forward a
+port, and pass only if all five are refused.
+
+**Your terminal is untouched.** Capture sits at the pty, below the emulator,
+so Windows Terminal, iTerm, PuTTY, tmux and the VS Code panel all work
+unchanged. `ssh` sessions come back for free: everything you see on a remote
+server inside a recorded shell is recorded *here*, with nothing installed
+there and no privileges needed.
+
+**One endpoint, any number of terminals.** No per-terminal configuration
+exists to get out of sync. Sessions carry their working directory, title and
+last command, so ten open terminals stay tellable apart — you ask about
+`cwd:webapp`, not about an id you had to go and look up.
+
+**Nothing runs unless you ask.** No timers, no watchers, no alerts, no
+background jobs. Between your questions tmon is a recorder writing to disk and
+nothing else, which is also why there is nothing to turn off.
+
+And it is one static binary. No runtime, no daemon to install, no agent on the
+servers you query.
+
 ## The two rules it is built around
 
 **It is pull-only.** Nothing is monitored, nothing is watched, nothing is
@@ -82,6 +121,30 @@ that first command.
 
 tmon is a single binary with no runtime dependencies. Download it, put it on
 your `PATH`, done.
+
+### The quick way
+
+Linux and macOS — including a server you have just sshed into:
+
+```sh
+curl -fsSL https://github.com/OWNER/tmon/releases/latest/download/install.sh | sh
+```
+
+Windows, in PowerShell:
+
+```powershell
+irm https://github.com/OWNER/tmon/releases/latest/download/install.ps1 | iex
+```
+
+Both detect your platform, verify the download against `checksums.txt`,
+install to `~/.local/bin` (or `/usr/local/bin` when run as root, `~in` on
+Windows), and tell you if that directory is not on your `PATH`. Override with
+`TMON_INSTALL_DIR` and pin a release with `TMON_VERSION=v0.1.0`.
+
+Piping a script from the internet into a shell is a real decision, not a
+formality. The script is short and does nothing clever —
+[read it first](scripts/install.sh) if you would rather, or follow the manual
+steps below, which are what it automates.
 
 ### Which file to download
 
@@ -396,6 +459,48 @@ started and ended and what it exited with. That is what turns *"why did that
 fail"* into a lookup — the last non-zero exit and its own output — instead of
 "here are the last 500 lines". Other shells are still captured in full; only
 that precision is missing, and tmon says so in its answers rather than pretending.
+
+## Tips
+
+**Start it before the long thing, not after.** Recording begins when the shell
+starts, so a build that has already failed in an unrecorded window is gone.
+`tmon start` installs the hook once and every terminal you open afterwards is
+covered, which is the version of this you do not have to remember.
+
+**Ask by directory.** With several terminals open, "why did the build in
+webapp fail?" works because `cwd:webapp` selects it. Copying session ids
+around is the slow path, and tmon refuses to guess between two live matches
+rather than answering from the wrong terminal.
+
+**`last-error` beats `tail`.** In bash, zsh and PowerShell tmon knows where
+each command started and ended, so "the last failed command and its own
+output" is a lookup. Reaching for the last 500 lines instead makes the
+assistant do the parsing, and it will sometimes get it wrong.
+
+**Label things you will come back to.** `tmon start --label deploy` lets you
+ask about `label:deploy` next week, when the working directory has stopped
+being memorable.
+
+**ssh sessions are recorded on this side.** You do not need tmon on the
+server. Run `ssh` inside a recorded shell and the remote output is captured
+locally — useful precisely on machines where you cannot install anything.
+
+**Size the buffer from measurements, not guesses.** `tmon sessions` prints
+each session's real write rate and how far back its buffer currently reaches.
+If that is shorter than the gap between something breaking and you asking
+about it, raise `buffer.max_bytes`. See
+[docs/buffer-sizing.md](docs/buffer-sizing.md).
+
+**Stop it with its own commands.** `tmon end`, or `tmon serve --stop` for just
+the endpoint. `taskkill /IM tmon.exe` and `pkill tmon` kill the recorder behind
+every recorded terminal, and a recorder owns its shell's pty, so unrelated
+windows die with it.
+
+**Know the edge of redaction.** It catches credential *shapes* it recognises,
+in both directions — on write and again on read. It is not a guarantee.
+Real password prompts turn echo off so those characters never reach the pty at
+all; what redaction is for is the token you typed on a command line or a
+script printed.
 
 ## Remote hosts
 

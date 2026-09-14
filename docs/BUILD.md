@@ -198,7 +198,8 @@ dist/tmon_windows_amd64.zip     dist/tmon_linux_amd64.tar.gz
 dist/tmon_windows_arm64.zip     dist/tmon_linux_arm64.tar.gz
 dist/tmon_darwin_amd64.tar.gz   dist/tmon-probe-linux-amd64
 dist/tmon_darwin_arm64.tar.gz   dist/tmon-probe-linux-arm64
-dist/checksums.txt
+dist/install.sh                 dist/checksums.txt
+dist/install.ps1
 ```
 
 Three decisions are worth knowing, because each one is load-bearing somewhere
@@ -219,6 +220,14 @@ README would land in the user's `~/bin` next to the executable.
 target host with `scp`, where an archive would only add a step. `tmon host add`
 looks for it next to the tmon executable or in `~/.tmon/probe/`, so shipping it
 alongside tmon makes host setup a copy-and-paste rather than a build step.
+
+**The installers are stamped, not hand-edited.** `scripts/install.sh` and
+`scripts/install.ps1` carry `OWNER/tmon` as a placeholder in the repository.
+`scripts/release.sh` substitutes the real slug when it copies them into
+`dist/`, taking it from `$GITHUB_REPOSITORY` under Actions and from the
+`origin` remote otherwise. A fork therefore publishes an installer pointing at
+the fork, with nothing to remember at release time. Building with neither
+available leaves the placeholder and says so on stderr.
 
 Packaging tools differ by machine, so the script checks rather than assumes:
 `zip` when present, otherwise bsdtar, which libarchive lets write zip files.
@@ -250,3 +259,17 @@ gh release create v0.1.0 dist/* --generate-notes
 ```
 
 `gh` is not installed on this machine; `winget install GitHub.cli` adds it.
+
+## Getting a build without cutting a release
+
+`ci.yml` runs `scripts/release.sh` on every push to `main` and uploads `dist/`
+as a workflow artifact named `tmon-dist`, kept for 14 days. It is reachable
+from the run's summary page in the Actions tab, or with the CLI:
+
+```sh
+gh run download --name tmon-dist
+```
+
+That is the path to use when a server needs a binary before any version has
+been tagged. The artifact is a zip of the same files a release would attach,
+so the manual install steps in the README apply unchanged.

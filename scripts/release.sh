@@ -98,6 +98,33 @@ done
 
 rmdir "$STAGE"
 
+# The installers ship as release assets so that the one-liner in the README is
+# a single URL. Both carry OWNER/tmon as a placeholder in the repository; the
+# real slug is stamped in here, from $GITHUB_REPOSITORY when a workflow is
+# running and from the origin remote otherwise. That way nothing has to be
+# hand-edited at release time and a fork's installer points at the fork.
+slug="${GITHUB_REPOSITORY:-}"
+if [ -z "$slug" ]; then
+	origin=$(git remote get-url origin 2>/dev/null || true)
+	case "$origin" in
+	*github.com[:/]*)
+		slug=${origin#*github.com}
+		slug=${slug#[:/]}
+		slug=${slug%.git}
+		;;
+	esac
+fi
+for f in install.sh install.ps1; do
+	if [ -n "$slug" ]; then
+		sed "s|OWNER/tmon|$slug|g" "scripts/$f" >"$DIST/$f"
+	else
+		cp "scripts/$f" "$DIST/$f"
+		echo "  note: no GitHub slug found, $f keeps the OWNER placeholder" >&2
+	fi
+	chmod 0755 "$DIST/$f"
+	printf '  %-28s\n' "$f"
+done
+
 # checksums.txt is what `sha256sum -c` and the package manifests both read.
 (
 	cd "$DIST"
