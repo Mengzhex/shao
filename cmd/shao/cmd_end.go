@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/mcpsrv"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/mcpsrv"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
-// cmdEnd is the counterpart to `tmon start`: it turns monitoring off.
+// cmdEnd is the counterpart to `shao start`: it turns monitoring off.
 //
 // There is one thing about it worth being upfront about. Recording and the
-// shell are the same object -- tmon records by wrapping the shell in a pty --
+// shell are the same object -- shao records by wrapping the shell in a pty --
 // so stopping a recording necessarily ends the shell it was recording. There
 // is no arrangement where the shell survives but the recording stops.
 //
@@ -101,12 +101,12 @@ func cmdEnd(cfg *config.Config, args []string) {
 	}
 
 	fmt.Printf("\nStopping %d recording(s). The shells they wrap will exit; that is the same\n", len(live))
-	fmt.Println("thing, because tmon records by wrapping the shell.")
+	fmt.Println("thing, because shao records by wrapping the shell.")
 	fmt.Println()
 
 	for _, s := range live {
 		if err := store.RequestStop(s.Dir); err != nil {
-			fmt.Fprintf(os.Stderr, "tmon: could not signal session %s: %v\n", s.Meta.ID, err)
+			fmt.Fprintf(os.Stderr, "shao: could not signal session %s: %v\n", s.Meta.ID, err)
 			continue
 		}
 	}
@@ -145,9 +145,9 @@ func cmdEnd(cfg *config.Config, args []string) {
 	}
 
 	fmt.Println()
-	fmt.Println("Everything already recorded is still readable: `tmon sessions`, `tmon tail`.")
-	fmt.Println("Run `tmon start` to turn monitoring back on.")
+	fmt.Println("Everything already recorded is still readable: `shao sessions`, `shao tail`.")
+	fmt.Println("Run `shao start` to turn monitoring back on.")
 }
 
-// containsHook reports whether a startup file already has the tmon block.
+// containsHook reports whether a startup file already has the shao block.
 func containsHook(text string) bool { return strings.Contains(text, hookBegin) }

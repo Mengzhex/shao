@@ -1,7 +1,7 @@
 // Package probe is the read-only agent that runs on a target host.
 //
-// It is the executable half of tmon's read-only guarantee. The other half is
-// sshd: the key tmon uses is installed with a forced command, so no matter
+// It is the executable half of shao's read-only guarantee. The other half is
+// sshd: the key shao uses is installed with a forced command, so no matter
 // what an SSH client asks to run, sshd runs this and only this. That is why
 // the guarantee holds even if everything on the client side were compromised.
 //

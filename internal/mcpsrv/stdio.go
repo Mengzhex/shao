@@ -8,15 +8,15 @@ import (
 	"io"
 )
 
-// maxMessageBytes bounds a single JSON-RPC message. Requests to tmon are
+// maxMessageBytes bounds a single JSON-RPC message. Requests to shao are
 // small; responses can be large, but those are written, not read.
 const maxMessageBytes = 8 << 20
 
 // ServeStdio runs the MCP protocol over a pipe, one JSON object per line.
 //
-// This is the transport an AI client uses when it launches tmon itself, which
+// This is the transport an AI client uses when it launches shao itself, which
 // means there is no long-lived process, no port and no token to manage: the
-// client starts `tmon mcp`, reads the answer, and the process goes away.
+// client starts `shao mcp`, reads the answer, and the process goes away.
 //
 // Nothing may be written to out except protocol messages, so every diagnostic
 // in this mode has to go to stderr.

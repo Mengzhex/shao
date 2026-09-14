@@ -23,7 +23,7 @@ const (
 	// or not the shell cooperates.
 	EvTitle
 	// EvCWD carries the working directory, either as OSC 7 (which terminals
-	// on macOS and Linux commonly emit) or as tmon's own OSC 7331;cwd, which
+	// on macOS and Linux commonly emit) or as shao's own OSC 7331;cwd, which
 	// is the only reliable source on Windows.
 	EvCWD
 )
@@ -135,7 +135,7 @@ func (p *Parser) finish(pos int) (Event, bool) {
 	return parsePayload(payload, pos)
 }
 
-// parsePayload interprets one OSC payload. Anything that is not a tmon or
+// parsePayload interprets one OSC payload. Anything that is not a shao or
 // OSC 133 marker is silently ignored: window-title and hyperlink sequences
 // come through here constantly.
 func parsePayload(payload string, pos int) (Event, bool) {

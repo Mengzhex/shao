@@ -2,10 +2,10 @@
 # Builds every release artifact into dist/, plus checksums.txt.
 #
 # Asset names carry no version. That is deliberate: it makes
-#   https://github.com/Mengzhex/tmon/releases/latest/download/<name>
+#   https://github.com/Mengzhex/shao/releases/latest/download/<name>
 # always resolve to the newest release, so the install commands in the README
 # never go stale and a Scoop or Homebrew manifest only has to change its hash.
-# The tag is still stamped into the binary through -ldflags, and `tmon version`
+# The tag is still stamped into the binary through -ldflags, and `shao version`
 # reports it.
 #
 # Usage: scripts/release.sh [VERSION]
@@ -83,18 +83,18 @@ archive_tgz() { # $1=out  $2=dir  $3=file
 	fi
 }
 
-echo "tmon $VERSION"
+echo "shao $VERSION"
 
 for target in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
 	os="${target%/*}"
 	arch="${target#*/}"
 
-	bin=tmon
-	[ "$os" = windows ] && bin=tmon.exe
+	bin=shao
+	[ "$os" = windows ] && bin=shao.exe
 
 	rm -f "$STAGE/$bin"
 	GOOS="$os" GOARCH="$arch" "$GO" build -trimpath -ldflags "$LDFLAGS" \
-		-o "$STAGE/$bin" ./cmd/tmon
+		-o "$STAGE/$bin" ./cmd/shao
 
 	# Force the executable bit into the archive. Go writes 0755 when building
 	# on Linux, but building on Windows produces a file that tars as 0644, and
@@ -106,10 +106,10 @@ for target in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 
 	# alongside it, because the README's install commands extract straight
 	# into a directory on PATH.
 	if [ "$os" = windows ]; then
-		out="tmon_${os}_${arch}.zip"
+		out="shao_${os}_${arch}.zip"
 		archive_zip "$DIST/$out" "$STAGE" "$bin"
 	else
-		out="tmon_${os}_${arch}.tar.gz"
+		out="shao_${os}_${arch}.tar.gz"
 		archive_tgz "$DIST/$out" "$STAGE" "$bin"
 	fi
 	printf '  %-28s %s\n' "$out" "$(du -h "$DIST/$out" | cut -f1)"
@@ -118,12 +118,12 @@ done
 
 # The probe ships as a bare binary rather than an archive: it gets copied to a
 # target host with scp, so an archive would only add a step. sshd invokes it
-# under the name tmon-probe and the binary switches to probe mode based on the
+# under the name shao-probe and the binary switches to probe mode based on the
 # name it was called as, which is why it is the same program.
 for arch in amd64 arm64; do
-	out="tmon-probe-linux-$arch"
+	out="shao-probe-linux-$arch"
 	GOOS=linux GOARCH="$arch" "$GO" build -trimpath -ldflags "$LDFLAGS" \
-		-o "$DIST/$out" ./cmd/tmon
+		-o "$DIST/$out" ./cmd/shao
 	printf '  %-28s %s\n' "$out" "$(du -h "$DIST/$out" | cut -f1)"
 done
 
@@ -134,7 +134,7 @@ rmdir "$STAGE"
 # straight from a clone; the slug is rewritten here when it differs, taken from
 # $GITHUB_REPOSITORY under Actions and from the origin remote otherwise, so a
 # fork publishes an installer pointing at the fork with nothing to remember.
-DEFAULT_SLUG="Mengzhex/tmon"
+DEFAULT_SLUG="Mengzhex/shao"
 
 slug="${GITHUB_REPOSITORY:-}"
 if [ -z "$slug" ]; then

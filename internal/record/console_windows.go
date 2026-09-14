@@ -50,7 +50,7 @@ func enablePlatformVT(inFd, outFd uintptr) func() {
 // watchResize polls for console size changes.
 //
 // Windows delivers window-resize events through the console input queue,
-// which tmon cannot read without competing with the shell for keystrokes.
+// which shao cannot read without competing with the shell for keystrokes.
 // Polling avoids that entirely: a quarter-second delay before a full-screen
 // program reflows is imperceptible, and nothing about the recording depends
 // on it.

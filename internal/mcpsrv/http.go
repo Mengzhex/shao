@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // The HTTP transport exists for AI platforms that connect to a URL rather
@@ -36,7 +36,7 @@ import (
 // Two shapes are served, because platforms differ on which they support:
 // Streamable HTTP at /mcp, and the older HTTP+SSE transport at /sse. The SSE
 // stream is a response channel only. Nothing is ever written to it that the
-// client did not ask for, so tmon remains pull-only despite holding a
+// client did not ask for, so shao remains pull-only despite holding a
 // long-lived connection open.
 
 const (
@@ -71,7 +71,7 @@ var sseKeepalive = 15 * time.Second
 // POST handler and written out by the GET handler.
 //
 // Note what this does not do: nothing is ever queued that the client did not
-// ask for. The stream is a response channel, not a push channel, so tmon
+// ask for. The stream is a response channel, not a push channel, so shao
 // stays strictly pull-only even though the connection is long-lived.
 type sseSession struct {
 	id string
@@ -234,7 +234,7 @@ func (h *HTTPServer) gate(w http.ResponseWriter, r *http.Request, token string) 
 		return false
 	}
 	if !checkAuth(r, token) {
-		w.Header().Set("WWW-Authenticate", `Bearer realm="tmon"`)
+		w.Header().Set("WWW-Authenticate", `Bearer realm="shao"`)
 		http.Error(w, "missing or invalid bearer token", http.StatusUnauthorized)
 		return false
 	}
@@ -367,7 +367,7 @@ func (s *Server) httpHandler(h *HTTPServer, token string) http.HandlerFunc {
 			s.httpPost(w, r)
 		case http.MethodGet:
 			// Streamable HTTP uses GET only for server-initiated messages,
-			// and tmon never sends any, so refusing is correct here. Clients
+			// and shao never sends any, so refusing is correct here. Clients
 			// that need a stream should use the SSE transport at /sse.
 			http.Error(w, "no server-to-client stream on this endpoint; use "+ssePath+" for the SSE transport", http.StatusMethodNotAllowed)
 		case http.MethodDelete:

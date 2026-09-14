@@ -7,13 +7,13 @@ import (
 	"golang.org/x/term"
 )
 
-// console owns the real terminal tmon was launched in: the one the user
+// console owns the real terminal shao was launched in: the one the user
 // types into and watches.
 //
 // While a session is recorded, that terminal is put in raw mode and becomes a
 // straight conduit to the pty. Nothing is interpreted on the way through, so
 // colours, full-screen programs and interactive prompts behave exactly as
-// they would without tmon in the middle. Recording taps the same bytes on
+// they would without shao in the middle. Recording taps the same bytes on
 // their way past; it never sits in front of them.
 type console struct {
 	in                         *os.File
@@ -39,7 +39,7 @@ func newConsole() *console {
 // Enter puts the terminal into raw mode and turns on VT processing where the
 // platform needs it asked for.
 //
-// When tmon is not attached to a real terminal (output piped to a file, run
+// When shao is not attached to a real terminal (output piped to a file, run
 // from a script) this is a no-op and recording still works; only the
 // interactive experience is absent.
 func (c *console) Enter() error {

@@ -41,7 +41,7 @@ escape sequences and collapsing redraws typically shrinks output several-fold.
 Do not estimate. Measure:
 
 ```
-$ tmon sessions
+$ shao sessions
 20260827T142530.412-8134  deploy  live  web-prod-1  118.4MB buffered  3.2 MB/min  ~1.3h back  47 cmds
 ```
 
@@ -51,7 +51,7 @@ and when you get around to asking is longer than that number, raise the cap.
 
 ## Raising it
 
-Globally, in `~/.tmon/config.yaml`:
+Globally, in `~/.shao/config.yaml`:
 
 ```yaml
 buffer:
@@ -67,7 +67,7 @@ log does not justify a bigger buffer for every shell you open:
 sessions:
   - label: deploy
     host: web-prod-1
-    max_bytes: 2147483648      # 2 GiB, applied to `tmon shell --label deploy`
+    max_bytes: 2147483648      # 2 GiB, applied to `shao shell --label deploy`
 ```
 
 Two constraints worth knowing:

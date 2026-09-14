@@ -1,4 +1,4 @@
-module tmon
+module github.com/Mengzhex/shao
 
 go 1.25.0
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 func newTestRedactor(t *testing.T, patterns ...string) *Redactor {

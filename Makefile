@@ -1,4 +1,4 @@
-# tmon build.
+# shao build.
 #
 # On this machine the Go toolchain lives in a conda environment whose
 # conda-forge build ships a trimmed binary at $PREFIX/bin/go.exe with GOROOT
@@ -12,20 +12,20 @@ GO                ?= $(GOROOT)/bin/go.exe
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.buildVersion=$(VERSION)
 
-BIN     := tmon
+BIN     := shao
 DIST    := dist
 
 .PHONY: all build probe dist fmt vet test clean help
 
 all: build
 
-## build: build tmon for the current platform
+## build: build shao for the current platform
 build:
-	$(GO) build -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/tmon
+	$(GO) build -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/shao
 
 ## probe: build the Linux probe binary to upload to target hosts
 #
-# It is the same program: sshd invokes it under the name tmon-probe, and the
+# It is the same program: sshd invokes it under the name shao-probe, and the
 # binary switches to probe mode based on the name it was called as.
 probe: dist
 

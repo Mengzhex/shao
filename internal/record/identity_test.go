@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/cook"
-	"tmon/internal/redact"
-	"tmon/internal/shellint"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/cook"
+	"github.com/Mengzhex/shao/internal/redact"
+	"github.com/Mengzhex/shao/internal/shellint"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // newTestRecorder builds the write side of a recorder without a pty, which is

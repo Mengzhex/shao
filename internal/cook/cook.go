@@ -5,7 +5,7 @@
 // returns. Handing that to a model wastes its attention on escape sequences
 // and, worse, makes a progress bar look like hundreds of distinct lines.
 //
-// So tmon keeps two streams per session. The raw stream is byte-exact and
+// So shao keeps two streams per session. The raw stream is byte-exact and
 // never interpreted. The cooked stream, produced here, applies the handful of
 // control codes that change what a line finally says (carriage return,
 // backspace, tab, erase-line, erase-screen, and both horizontal and vertical
@@ -292,7 +292,7 @@ func (c *Cooker) setCol(col int) {
 	if col < 0 {
 		col = 0
 	}
-	// Bound the column so a bogus escape cannot make tmon allocate a huge
+	// Bound the column so a bogus escape cannot make shao allocate a huge
 	// line buffer.
 	if col > 1<<16 {
 		col = 1 << 16

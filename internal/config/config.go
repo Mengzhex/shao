@@ -1,12 +1,12 @@
-// Package config loads and persists tmon's on-disk configuration.
+// Package config loads and persists shao's on-disk configuration.
 //
-// Everything tmon needs lives under a single root directory (default
-// ~/.tmon), so the tool stays self-contained and easy to wipe:
+// Everything shao needs lives under a single root directory (default
+// ~/.shao), so the tool stays self-contained and easy to wipe:
 //
-//	~/.tmon/config.yaml     this file's contents
-//	~/.tmon/sessions/<id>/  per-session ring buffers (see internal/store)
-//	~/.tmon/keys/           dedicated read-only SSH keys, one per host
-//	~/.tmon/token           bearer token for the local HTTP MCP endpoint
+//	~/.shao/config.yaml     this file's contents
+//	~/.shao/sessions/<id>/  per-session ring buffers (see internal/store)
+//	~/.shao/keys/           dedicated read-only SSH keys, one per host
+//	~/.shao/token           bearer token for the local HTTP MCP endpoint
 package config
 
 import (
@@ -101,7 +101,7 @@ type SessionRule struct {
 	MaxBytes int64  `yaml:"max_bytes"`
 }
 
-// Enforcement records how read-only access to a host is guaranteed. tmon
+// Enforcement records how read-only access to a host is guaranteed. shao
 // deliberately offers no soft, in-process-only tier: a host that cannot be
 // configured for sshd-enforced read-only access is simply not queryable.
 type Enforcement string
@@ -142,7 +142,7 @@ type HostConfig struct {
 	HostKey   string   `yaml:"host_key"`
 	ProbePath string   `yaml:"probe_path"`
 	Aspects   []string `yaml:"aspects"`
-	// VerifiedAt is set by `tmon host verify` once enforcement has been
+	// VerifiedAt is set by `shao host verify` once enforcement has been
 	// actively proven rather than merely declared.
 	VerifiedAt string `yaml:"verified_at"`
 }
@@ -185,17 +185,17 @@ func Default() *Config {
 	}
 }
 
-// DefaultRoot is ~/.tmon, overridable with TMON_HOME for tests and for
+// DefaultRoot is ~/.shao, overridable with SHAO_HOME for tests and for
 // users who keep tooling state elsewhere.
 func DefaultRoot() string {
-	if v := os.Getenv("TMON_HOME"); v != "" {
+	if v := os.Getenv("SHAO_HOME"); v != "" {
 		return v
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".tmon"
+		return ".shao"
 	}
-	return filepath.Join(home, ".tmon")
+	return filepath.Join(home, ".shao")
 }
 
 func (c *Config) Root() string        { return c.root }
@@ -204,10 +204,10 @@ func (c *Config) KeysDir() string     { return filepath.Join(c.root, "keys") }
 func (c *Config) TokenPath() string   { return filepath.Join(c.root, "token") }
 func (c *Config) ConfigPath() string  { return filepath.Join(c.root, "config.yaml") }
 
-// ProbeBinaryPath is where `tmon host add` stages the probe executable
+// ProbeBinaryPath is where `shao host add` stages the probe executable
 // before uploading it to a target host.
 func (c *Config) ProbeBinaryPath() string {
-	return filepath.Join(c.root, "probe", "tmon-probe")
+	return filepath.Join(c.root, "probe", "shao-probe")
 }
 
 // Load reads root/config.yaml, filling in defaults for anything absent. A
@@ -296,7 +296,7 @@ func (c *Config) Validate() (warnings []string, err error) {
 			// silently become queryable.
 			h.Enforcement = EnforceDisabled
 			warnings = append(warnings, fmt.Sprintf(
-				"host %q: enforcement not set, treating as disabled (run `tmon host add %s`)", h.Name, h.Name))
+				"host %q: enforcement not set, treating as disabled (run `shao host add %s`)", h.Name, h.Name))
 			continue
 		}
 		if !h.Enforcement.valid() {
@@ -311,7 +311,7 @@ func (c *Config) Validate() (warnings []string, err error) {
 		}
 		if h.VerifiedAt == "" {
 			warnings = append(warnings, fmt.Sprintf(
-				"host %q: enforcement never verified, environment queries stay disabled until `tmon host verify %s` passes",
+				"host %q: enforcement never verified, environment queries stay disabled until `shao host verify %s` passes",
 				h.Name, h.Name))
 		}
 		if h.HostKey == "" {
@@ -370,7 +370,7 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	header := "# tmon configuration. See docs/buffer-sizing.md for how to size the\n" +
+	header := "# shao configuration. See docs/buffer-sizing.md for how to size the\n" +
 		"# ring buffers, and docs/security-model.md for the enforcement tiers.\n"
 	return WritePrivateFile(c.ConfigPath(), append([]byte(header), data...))
 }

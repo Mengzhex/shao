@@ -1,18 +1,18 @@
 // Package hostcfg sets up and checks read-only access to target hosts.
 //
-// The security model in one paragraph: tmon never holds credentials that can
+// The security model in one paragraph: shao never holds credentials that can
 // change a target host. For each host it generates a dedicated SSH key whose
 // only accepted use is a forced command running the read-only probe. sshd
-// enforces that, not tmon, so the restriction survives anything going wrong
+// enforces that, not shao, so the restriction survives anything going wrong
 // on this side, including the AI being talked into asking for something else.
-// There is deliberately no fallback tier where tmon merely promises to send
+// There is deliberately no fallback tier where shao merely promises to send
 // only safe commands: a host that cannot be set up this way is marked
 // disabled and does not appear as queryable at all.
 //
-// tmon also never writes to a target host. Installing the probe needs
+// shao also never writes to a target host. Installing the probe needs
 // privileges that the read-only key does not have and should not have, so
-// `tmon host add` generates the key and an install script for a human to run
-// with their own credentials. `tmon host verify` then proves the result by
+// `shao host add` generates the key and an install script for a human to run
+// with their own credentials. `shao host verify` then proves the result by
 // trying to escape the restriction and reporting whether it could.
 package hostcfg
 
@@ -27,7 +27,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // Tier names the enforcement level a host is being set up for.
@@ -60,7 +60,7 @@ func KeyPaths(cfg *config.Config, host string) (private, public string) {
 // GenerateKey creates a dedicated ed25519 key for one host.
 //
 // A separate key per host means revoking access to one host is one line
-// removed on that host, and it keeps tmon's key out of the user's everyday
+// removed on that host, and it keeps shao's key out of the user's everyday
 // agent where it could be picked up by something else.
 func GenerateKey(cfg *config.Config, host string) (privatePath, publicKey string, err error) {
 	priv, pub, err := newEd25519()
@@ -86,7 +86,7 @@ func newEd25519() (privatePEM, authorizedKey []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	comment := "tmon-readonly-probe"
+	comment := "shao-readonly-probe"
 
 	block, err := ssh.MarshalPrivateKey(priv, comment)
 	if err != nil {
@@ -133,9 +133,9 @@ func BuildInstallPlan(host config.HostConfig, tier Tier, publicKey, localProbe s
 	probePath := host.ProbePath
 	if probePath == "" {
 		if tier == TierRoot {
-			probePath = "/usr/local/libexec/tmon-probe"
+			probePath = "/usr/local/libexec/shao-probe"
 		} else {
-			probePath = "$HOME/.tmon/tmon-probe"
+			probePath = "$HOME/.shao/shao-probe"
 		}
 	}
 
@@ -176,7 +176,7 @@ func rootScript(host config.HostConfig, probePath, publicKey string) string {
 		account = "aiview"
 	}
 	return fmt.Sprintf(`#!/bin/sh
-# tmon read-only access, root tier. Run this on %s as root.
+# shao read-only access, root tier. Run this on %s as root.
 #
 # It creates a dedicated unprivileged account whose only possible SSH action
 # is running the read-only probe. Two independent mechanisms enforce that:
@@ -193,8 +193,8 @@ if ! id "$ACCOUNT" >/dev/null 2>&1; then
   useradd --system --create-home --shell /usr/sbin/nologin "$ACCOUNT"
 fi
 
-# The probe binary must already have been copied to /tmp/tmon-probe.
-install -o root -g root -m 0755 /tmp/tmon-probe "$PROBE"
+# The probe binary must already have been copied to /tmp/shao-probe.
+install -o root -g root -m 0755 /tmp/shao-probe "$PROBE"
 
 install -d -o "$ACCOUNT" -g "$ACCOUNT" -m 0700 "$(getent passwd "$ACCOUNT" | cut -d: -f6)/.ssh"
 AUTH="$(getent passwd "$ACCOUNT" | cut -d: -f6)/.ssh/authorized_keys"
@@ -205,10 +205,10 @@ chown "$ACCOUNT":"$ACCOUNT" "$AUTH"
 chmod 0600 "$AUTH"
 
 # Second layer. Appended once; re-running the script will not duplicate it.
-if ! grep -q "tmon read-only probe" /etc/ssh/sshd_config; then
+if ! grep -q "shao read-only probe" /etc/ssh/sshd_config; then
   cat >> /etc/ssh/sshd_config <<SSHD
 
-# tmon read-only probe: this account can do nothing but run the probe.
+# shao read-only probe: this account can do nothing but run the probe.
 Match User $ACCOUNT
     ForceCommand $PROBE
     PermitTTY no
@@ -223,15 +223,15 @@ fi
 
 # Read-only commands that need privilege. Each entry is an exact command with
 # no wildcard: a wildcard here would be a way to run something else.
-cat > /etc/sudoers.d/tmon-probe <<'SUDO'
+cat > /etc/sudoers.d/shao-probe <<'SUDO'
 %s ALL=(root) NOPASSWD: /usr/sbin/nginx -t, /usr/sbin/nginx -T, /usr/bin/ss -tulpnH
 SUDO
-chmod 0440 /etc/sudoers.d/tmon-probe
-visudo -cf /etc/sudoers.d/tmon-probe
+chmod 0440 /etc/sudoers.d/shao-probe
+visudo -cf /etc/sudoers.d/shao-probe
 
 sshd -t && systemctl reload sshd
-echo "tmon: read-only access installed for $ACCOUNT"
-echo "tmon: now run  tmon host verify %s  to prove it holds"
+echo "shao: read-only access installed for $ACCOUNT"
+echo "shao: now run  shao host verify %s  to prove it holds"
 `, host.Address, account, probePath, AuthorizedKeysLine(probePath, publicKey), account, host.Name)
 }
 
@@ -239,17 +239,17 @@ echo "tmon: now run  tmon host verify %s  to prove it holds"
 // embedding it ready-made.
 //
 // sshd does not expand environment variables in the command= option, so a
-// literal "$HOME/.tmon/tmon-probe" there would be taken as a path with a
+// literal "$HOME/.shao/shao-probe" there would be taken as a path with a
 // dollar sign in it and never execute. The script runs on the target and knows
 // the real home directory, so it is the right place to resolve it.
 func userScript(probePath, publicKey string) string {
 	return fmt.Sprintf(`#!/bin/sh
-# tmon read-only access, no-root tier. Run this on the target host as
+# shao read-only access, no-root tier. Run this on the target host as
 # yourself. No administrator privileges are needed.
 #
 # This adds one extra key to your own authorized_keys, carrying a forced
 # command. sshd is what enforces it: whatever an SSH client asks to run is
-# discarded and the probe runs instead. The key tmon holds therefore cannot
+# discarded and the probe runs instead. The key shao holds therefore cannot
 # do anything but read host facts, even though it authenticates as you.
 #
 # Commands that need root (nginx -T, process names behind listening ports)
@@ -259,8 +259,8 @@ set -eu
 PROBE="%s"
 
 mkdir -p "$(dirname "$PROBE")"
-# The probe binary must already have been copied to /tmp/tmon-probe.
-install -m 0755 /tmp/tmon-probe "$PROBE"
+# The probe binary must already have been copied to /tmp/shao-probe.
+install -m 0755 /tmp/shao-probe "$PROBE"
 
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh"
@@ -275,14 +275,14 @@ LINE="command=\"$PROBE\",$OPTIONS $PUBKEY"
 
 case "$PROBE" in
   /*) ;;
-  *) echo "tmon: refusing to install: probe path '$PROBE' is not absolute" >&2; exit 1 ;;
+  *) echo "shao: refusing to install: probe path '$PROBE' is not absolute" >&2; exit 1 ;;
 esac
 
 if ! grep -qF "$LINE" "$HOME/.ssh/authorized_keys"; then
   printf '%%s\n' "$LINE" >> "$HOME/.ssh/authorized_keys"
 fi
 
-echo "tmon: read-only key installed, forced command: $PROBE"
-echo "tmon: now run  tmon host verify  to prove it holds"
+echo "shao: read-only key installed, forced command: $PROBE"
+echo "shao: now run  shao host verify  to prove it holds"
 `, probePath, publicKey, authorizedKeysOptions)
 }

@@ -1,4 +1,4 @@
-// Package store implements tmon's per-session ring buffers.
+// Package store implements shao's per-session ring buffers.
 //
 // A session's stream is a plain append-only byte stream, chopped into
 // fixed-size segment files. When the total exceeds the configured cap the
@@ -16,8 +16,8 @@
 //     as if it were continuous, and ring eviction is reported separately as
 //     Truncated because that is expected loss, not corruption.
 //
-// Writers and readers are different processes (a `tmon shell` recorder
-// writes; `tmon mcp` reads), so all coordination happens through the
+// Writers and readers are different processes (a `shao shell` recorder
+// writes; `shao mcp` reads), so all coordination happens through the
 // filesystem. No shared memory, no IPC, and a recorder keeps working when
 // nothing else is running.
 package store
@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	segMagic      = "TMONSEG1"
+	segMagic      = "SHAOSEG1"
 	segVersion    = uint16(1)
 	segHeaderSize = 32
 	segExt        = ".seg"
@@ -52,7 +52,7 @@ var ErrNoSegments = errors.New("store: no segments")
 
 // segHeader prefixes every segment file.
 //
-//	 0..7   magic "TMONSEG1"
+//	 0..7   magic "SHAOSEG1"
 //	 8..9   format version (little endian)
 //	10..15  reserved, zero
 //	16..23  segment sequence number

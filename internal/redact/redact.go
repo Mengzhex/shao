@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // maxHold bounds the hold-back buffer. A pty delivers arbitrary chunks, so a
@@ -124,7 +124,7 @@ type Redactor struct {
 
 // New builds a Redactor from configuration. User patterns are appended after
 // the built-ins so a site-specific shape can be caught without editing code.
-// A user pattern replaces its whole match, since tmon cannot know which of
+// A user pattern replaces its whole match, since shao cannot know which of
 // its groups is the secret.
 func New(cfg config.RedactConfig) (*Redactor, error) {
 	r := &Redactor{}

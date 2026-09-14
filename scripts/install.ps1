@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-tmon installer for Windows.
+shao installer for Windows.
 
 .DESCRIPTION
 Downloads the latest release, verifies its checksum, installs it, and puts the
 install directory on the user PATH.
 
-    irm https://github.com/Mengzhex/tmon/releases/latest/download/install.ps1 | iex
+    irm https://github.com/Mengzhex/shao/releases/latest/download/install.ps1 | iex
 
 .PARAMETER InstallDir
-Where to put tmon.exe. Defaults to $HOME\bin.
+Where to put shao.exe. Defaults to $HOME\bin.
 
 .PARAMETER Version
 A tag such as v0.1.0. Defaults to the latest release.
@@ -21,7 +21,7 @@ owner/name, if you forked it.
 param(
     [string]$InstallDir = "$HOME\bin",
     [string]$Version = 'latest',
-    [string]$Repo = 'Mengzhex/tmon'
+    [string]$Repo = 'Mengzhex/shao'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,18 +38,18 @@ $arch = switch ($env:PROCESSOR_ARCHITECTURE) {
     default { throw "unsupported architecture: $($env:PROCESSOR_ARCHITECTURE)" }
 }
 
-$asset = "tmon_windows_$arch.zip"
+$asset = "shao_windows_$arch.zip"
 $base = if ($Version -eq 'latest') {
     "https://github.com/$Repo/releases/latest/download"
 } else {
     "https://github.com/$Repo/releases/download/$Version"
 }
 
-$tmp = Join-Path ([IO.Path]::GetTempPath()) ("tmon-" + [Guid]::NewGuid().ToString('N'))
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ("shao-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 try {
-    Write-Host "tmon: downloading $asset"
+    Write-Host "shao: downloading $asset"
     $zip = Join-Path $tmp $asset
     # Invoke-WebRequest's progress bar makes large downloads several times
     # slower in Windows PowerShell.
@@ -72,27 +72,27 @@ try {
         if ($got -ne $want.ToLower()) {
             throw "checksum mismatch for ${asset}:`n  expected $want`n  got      $got"
         }
-        Write-Host 'tmon: checksum ok'
+        Write-Host 'shao: checksum ok'
     } catch [System.Net.WebException] {
-        Write-Host 'tmon: checksums.txt unavailable, skipping verification'
+        Write-Host 'shao: checksums.txt unavailable, skipping verification'
     }
 
     Expand-Archive -Path $zip -DestinationPath $tmp -Force
-    $binary = Join-Path $tmp 'tmon.exe'
-    if (-not (Test-Path $binary)) { throw 'archive did not contain tmon.exe' }
+    $binary = Join-Path $tmp 'shao.exe'
+    if (-not (Test-Path $binary)) { throw 'archive did not contain shao.exe' }
 
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-    $target = Join-Path $InstallDir 'tmon.exe'
+    $target = Join-Path $InstallDir 'shao.exe'
 
-    # A running tmon.exe cannot be overwritten. Say which command to run rather
+    # A running shao.exe cannot be overwritten. Say which command to run rather
     # than leaving the user with "the process cannot access the file".
     try {
         Copy-Item $binary $target -Force
     } catch [System.IO.IOException] {
-        throw "could not replace $target -- tmon is probably still running. Stop it with 'tmon end' and 'tmon serve --stop', then run this again."
+        throw "could not replace $target -- shao is probably still running. Stop it with 'shao end' and 'shao serve --stop', then run this again."
     }
 
-    Write-Host "tmon: installed to $target"
+    Write-Host "shao: installed to $target"
     & $target version
 
     $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
@@ -103,7 +103,7 @@ try {
     }
 
     Write-Host ''
-    Write-Host "Next: run 'tmon start' in a terminal you want recorded."
+    Write-Host "Next: run 'shao start' in a terminal you want recorded."
 } finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 }

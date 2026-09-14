@@ -8,10 +8,10 @@ import "bytes"
 //	ESC [ ? 9001 h    win32-input-mode: "send me keystrokes Win32-encoded"
 //	ESC [ ? 1004 h    focus reporting:  "tell me when focus changes"
 //
-// Both are addressed to tmon, which is the pseudoconsole's host. Forwarding
+// Both are addressed to shao, which is the pseudoconsole's host. Forwarding
 // them instead tells the *user's* terminal to switch input encoding, and then
 // its keystrokes arrive as `ESC[...;32;1_` and its focus changes as `ESC[I`,
-// which tmon passes straight through to a shell that renders them as literal
+// which shao passes straight through to a shell that renders them as literal
 // text. The result is a terminal that spews punctuation and cannot be typed
 // into -- and it only happens with a real console attached, which is why a
 // test harness with pipes on stdout never sees it.
@@ -21,7 +21,7 @@ import "bytes"
 //
 // The cost is that focus reporting is unavailable to full-screen programs
 // running inside a recorded shell. That is a fair trade against a terminal
-// that cannot be used at all, and tmon cannot tell the two uses apart.
+// that cannot be used at all, and shao cannot tell the two uses apart.
 var blockedModes = map[int]bool{
 	9001: true,
 	1004: true,

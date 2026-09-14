@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // Defaults for the terminal tools. They are set so that a question asked
@@ -29,7 +29,7 @@ func (s *Server) registerTerminalTools() {
 	s.register(toolDef{
 		Name:  "list_sessions",
 		Title: "List recorded terminal sessions",
-		Description: `List the terminal sessions tmon has recorded on this machine, newest first.
+		Description: `List the terminal sessions shao has recorded on this machine, newest first.
 
 One endpoint serves every recorded terminal, so this is how you find out which terminals exist. Each entry carries its working directory, terminal title, and the last command it ran with how that ended, which is what tells several open terminals apart. Use it first whenever the question could refer to more than one terminal.
 
@@ -91,7 +91,7 @@ Searching backwards means the most recent occurrence is found first, which is al
 		Title: "List commands run in a session",
 		Description: `List the commands run in a session with their exit codes and durations.
 
-This is available only for shells tmon could instrument (bash, zsh, PowerShell). For other shells the list is empty while the output itself is still fully recorded. Use only_failed to go straight to what went wrong.`,
+This is available only for shells shao could instrument (bash, zsh, PowerShell). For other shells the list is empty while the output itself is still fully recorded. Use only_failed to go straight to what went wrong.`,
 		InputSchema: schema(map[string]any{
 			"session":     prop("string", `Which session. Defaults to "latest".`),
 			"limit":       propInt("How many commands to return, most recent last. Default 50.", 50),
@@ -105,7 +105,7 @@ This is available only for shells tmon could instrument (bash, zsh, PowerShell).
 		Title: "Find the most recent failure",
 		Description: `Find the most recent command that failed and return it with its exit code and its own output.
 
-This is the tool for "why did that just fail". Because tmon records where each command started and ended, the output returned is that command's output specifically, not the last N lines of a busy terminal. If the shell could not be instrumented, this falls back to searching recent output for error-shaped text and says so.`,
+This is the tool for "why did that just fail". Because shao records where each command started and ended, the output returned is that command's output specifically, not the last N lines of a busy terminal. If the shell could not be instrumented, this falls back to searching recent output for error-shaped text and says so.`,
 		InputSchema: schema(map[string]any{
 			"session":   prop("string", `Which session. Defaults to "latest".`),
 			"max_lines": propInt("Cap on output lines returned. Default 300.", defaultErrorOutput),
@@ -156,7 +156,7 @@ func sessionHeader(info store.Info) string {
 
 	switch {
 	case len(info.Meta.Argv) > 0:
-		// A `tmon run` session. It has no shell integration, but it does have
+		// A `shao run` session. It has no shell integration, but it does have
 		// one command block covering the whole run with a real exit code, so
 		// the generic warning below would contradict what the tools return.
 		b.WriteString("note: this session recorded a single command, so there is one command block covering the whole run.\n")
@@ -213,7 +213,7 @@ func (s *Server) toolListSessions(raw json.RawMessage) *callToolResult {
 				"No terminal is recording, and no session finished recently. %d older session(s) exist; pass all=true or ended_within_hours to see them.",
 				omitted))
 		}
-		return textResult("No recorded sessions. A session is created by running `tmon start`; terminals opened without it are not recorded.")
+		return textResult("No recorded sessions. A session is created by running `shao start`; terminals opened without it are not recorded.")
 	}
 
 	var b strings.Builder

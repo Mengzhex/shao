@@ -1,8 +1,8 @@
-// Package mcpsrv serves tmon's read-only tools over the Model Context
+// Package mcpsrv serves shao's read-only tools over the Model Context
 // Protocol.
 //
 // The protocol is implemented directly rather than through an SDK. MCP over
-// stdio is JSON-RPC 2.0 with one object per line, and the surface tmon needs
+// stdio is JSON-RPC 2.0 with one object per line, and the surface shao needs
 // is four methods, so a dependency would add version risk without removing
 // much code.
 //
@@ -25,9 +25,9 @@ import (
 	"fmt"
 )
 
-// protocolVersion is the MCP revision tmon implements. When a client asks for
+// protocolVersion is the MCP revision shao implements. When a client asks for
 // a different one, the server echoes the client's version back if it is a
-// revision tmon understands, since MCP revisions have so far been additive
+// revision shao understands, since MCP revisions have so far been additive
 // for a server this small.
 const protocolVersion = "2025-06-18"
 
@@ -83,7 +83,7 @@ func newError(id json.RawMessage, code int, format string, args ...any) *rpcResp
 	}
 }
 
-// initializeParams is the subset of the handshake tmon reads.
+// initializeParams is the subset of the handshake shao reads.
 type initializeParams struct {
 	ProtocolVersion string `json:"protocolVersion"`
 	ClientInfo      struct {
@@ -111,7 +111,7 @@ type toolDef struct {
 	Description string         `json:"description"`
 	InputSchema map[string]any `json:"inputSchema"`
 	// Annotations tell a client how a tool behaves. readOnlyHint is set on
-	// every tool tmon exposes, because every tool tmon exposes is a reader.
+	// every tool shao exposes, because every tool shao exposes is a reader.
 	Annotations map[string]any `json:"annotations,omitempty"`
 }
 

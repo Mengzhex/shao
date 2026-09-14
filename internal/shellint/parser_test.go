@@ -119,7 +119,7 @@ func TestTitleParsed(t *testing.T) {
 }
 
 // The working directory is the single most useful discriminator between
-// terminals. It arrives two ways: OSC 7 where a terminal emits it, and tmon's
+// terminals. It arrives two ways: OSC 7 where a terminal emits it, and shao's
 // own marker, which is the only source on Windows.
 func TestCWDParsed(t *testing.T) {
 	cwdMarker := func(dir string) string {

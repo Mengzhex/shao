@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Backgrounding is the default for `tmon serve`, which means the child it
+// Backgrounding is the default for `shao serve`, which means the child it
 // spawns would background itself too unless explicitly told not to. The first
 // version of this did exactly that and produced 51 processes in a few seconds.
 //
@@ -33,7 +33,7 @@ func TestServeDetachDoesNotForkBomb(t *testing.T) {
 	home := filepath.Join(tmp, "home")
 	// Port 0 keeps the test off any port a real endpoint might be using.
 	cmd := exec.Command(exe, "--home", home, "serve", "--port", "0")
-	cmd.Env = append(os.Environ(), "TMON_HOME="+home)
+	cmd.Env = append(os.Environ(), "SHAO_HOME="+home)
 	out, err := cmd.CombinedOutput()
 	t.Cleanup(func() {
 		stop := exec.Command(exe, "--home", home, "serve", "--stop")
@@ -78,7 +78,7 @@ func TestServeChildRefusesToBackgroundAgain(t *testing.T) {
 
 	home := filepath.Join(tmp, "home")
 	cmd := exec.Command(exe, "--home", home, "serve", "--port", "0")
-	cmd.Env = append(os.Environ(), "TMON_HOME="+home, serveChildEnv+"=1")
+	cmd.Env = append(os.Environ(), "SHAO_HOME="+home, serveChildEnv+"=1")
 	out, err := cmd.CombinedOutput()
 	if err == nil {
 		killAll(t, exe)
@@ -154,10 +154,10 @@ func killAll(t *testing.T, exe string) {
 	_ = exec.Command("pkill", "-f", exe).Run()
 }
 
-// `tmon start --port N` is the two-command shape the tool is meant to have:
+// `shao start --port N` is the two-command shape the tool is meant to have:
 // one command turns everything on, one turns it off. The endpoint must be
 // detached, so it outlives the recorded shell rather than dying with it, and
-// `tmon end` must take it down again.
+// `shao end` must take it down again.
 func TestStartWithPortBringsUpDetachedEndpoint(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds and runs the binary")
@@ -169,7 +169,7 @@ func TestStartWithPortBringsUpDetachedEndpoint(t *testing.T) {
 		t.Skipf("cannot build the binary here: %v\n%s", err, out)
 	}
 	home := filepath.Join(tmp, "home")
-	env := append(os.Environ(), "TMON_HOME="+home)
+	env := append(os.Environ(), "SHAO_HOME="+home)
 
 	// --no-hook keeps the machine's startup files out of it; stdin is closed
 	// at once so the recorded shell exits immediately.
@@ -197,19 +197,19 @@ func TestStartWithPortBringsUpDetachedEndpoint(t *testing.T) {
 		t.Fatalf("the endpoint died with the recorded shell:\n%s", sOut)
 	}
 
-	// And `tmon end` takes it down, so one command really does turn it all off.
+	// And `shao end` takes it down, so one command really does turn it all off.
 	end := exec.Command(exe, "--home", home, "end", "--keep-hook")
 	end.Env = env
 	eOut, _ := end.CombinedOutput()
 	if !strings.Contains(string(eOut), "Stopped the HTTP endpoint") {
-		t.Errorf("`tmon end` did not stop the endpoint:\n%s", eOut)
+		t.Errorf("`shao end` did not stop the endpoint:\n%s", eOut)
 	}
 
 	status2 := exec.Command(exe, "--home", home, "serve", "--status")
 	status2.Env = env
 	s2Out, _ := status2.CombinedOutput()
 	if strings.Contains(string(s2Out), "Serving on") {
-		t.Errorf("the endpoint is still running after `tmon end`:\n%s", s2Out)
+		t.Errorf("the endpoint is still running after `shao end`:\n%s", s2Out)
 	}
 }
 
@@ -227,7 +227,7 @@ func TestEndKeepShellsStillTidiesStaleSessions(t *testing.T) {
 		t.Skipf("cannot build the binary here: %v\n%s", err, out)
 	}
 	home := filepath.Join(tmp, "home")
-	env := append(os.Environ(), "TMON_HOME="+home)
+	env := append(os.Environ(), "SHAO_HOME="+home)
 
 	// A session left behind by a recorder that vanished: metadata says it is
 	// open, no such process exists.
@@ -276,12 +276,12 @@ func TestStartInRecordedShellStillHonoursPort(t *testing.T) {
 	}
 	home := filepath.Join(tmp, "home")
 
-	// TMON_RECORDING=1 is what a recorded shell looks like from inside.
+	// SHAO_RECORDING=1 is what a recorded shell looks like from inside.
 	cmd := exec.Command(exe, "--home", home, "start", "--no-hook", "--port", "0")
 	cmd.Env = append(os.Environ(),
-		"TMON_HOME="+home,
-		"TMON_RECORDING=1",
-		"TMON_SESSION_ID=pretend-session",
+		"SHAO_HOME="+home,
+		"SHAO_RECORDING=1",
+		"SHAO_SESSION_ID=pretend-session",
 	)
 	out, err := cmd.CombinedOutput()
 	t.Cleanup(func() {

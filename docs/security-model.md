@@ -1,15 +1,15 @@
 # Security model
 
-What "the AI can read but not execute" actually means in tmon, how it is
+What "the AI can read but not execute" actually means in shao, how it is
 enforced, and where the boundaries genuinely are.
 
 ## The claim
 
-An AI assistant connected to tmon can read terminal history recorded on this
+An AI assistant connected to shao can read terminal history recorded on this
 machine and a fixed set of facts about configured remote hosts. It cannot run
 a command of its choosing anywhere, cannot write to any file, and cannot change
 any host. This holds even if the assistant is fed a malicious instruction, and
-even if the machine running tmon is compromised — for remote hosts, at least.
+even if the machine running shao is compromised — for remote hosts, at least.
 
 ## Why it is not just "we did not give it an execute tool"
 
@@ -17,12 +17,12 @@ Not registering a dangerous tool is a software convention. It survives exactly
 as long as nobody changes the code, nobody adds a convenience flag, and no
 other process can reach the same credentials.
 
-tmon puts the restriction where it cannot be argued with: in sshd on the target
+shao puts the restriction where it cannot be argued with: in sshd on the target
 host.
 
 ```
 authorized_keys on the target:
-  command="/usr/local/libexec/tmon-probe",restrict,no-pty,no-port-forwarding,
+  command="/usr/local/libexec/shao-probe",restrict,no-pty,no-port-forwarding,
   no-agent-forwarding,no-X11-forwarding,no-user-rc  ssh-ed25519 AAAA...
 ```
 
@@ -30,7 +30,7 @@ When a key carries `command=`, sshd discards whatever the client asked to run
 and runs that program instead. The client's request survives only as the
 `SSH_ORIGINAL_COMMAND` environment variable, which the probe reads only in
 order to ignore it. So the question "what can this key do" has one answer that
-does not depend on tmon's code at all.
+does not depend on shao's code at all.
 
 `restrict` is used rather than a list of individual `no-*` options because it
 denies everything and then turns nothing back on: a capability added to a
@@ -45,7 +45,7 @@ shell, installs the forced-command key, *and* adds an `sshd_config` block:
 
 ```
 Match User aiview
-    ForceCommand /usr/local/libexec/tmon-probe
+    ForceCommand /usr/local/libexec/shao-probe
     PermitTTY no
     AllowTcpForwarding no
     AllowAgentForwarding no
@@ -74,7 +74,7 @@ key exactly as strictly as on a system account's. The only thing lost is
 privileged reads, which report themselves as `unavailable` rather than failing.
 
 **No third tier exists.** A host that cannot take either setup is recorded as
-`disabled` and does not appear as queryable. There is no mode where tmon
+`disabled` and does not appear as queryable. There is no mode where shao
 connects with ordinary credentials and limits itself in its own process,
 because that would offer the feeling of a guarantee without one.
 
@@ -84,7 +84,7 @@ Configuration drifts. A key gets pasted with a broken quote, sshd is edited but
 never reloaded, a probe path moves. So a host is not queryable because it is
 configured — it is queryable because it has been tested.
 
-`tmon host verify` opens a connection with the read-only key and attempts:
+`shao host verify` opens a connection with the read-only key and attempts:
 
 | Attempt | Must result in |
 |---|---|
@@ -126,10 +126,10 @@ That is the whole audit surface.
 ## The local side
 
 Terminal history is read straight from files on this machine. There is no
-privilege boundary here — anything the user can read, tmon can read — so the
+privilege boundary here — anything the user can read, shao can read — so the
 protections are about exposure rather than authority:
 
-- Everything under `~/.tmon` is created owner-only.
+- Everything under `~/.shao` is created owner-only.
 - Redaction runs on the way to disk and again on the way out.
 - The HTTP transports bind to loopback by default, require a bearer token
   compared in constant time, and reject any request carrying a non-loopback
@@ -160,14 +160,14 @@ protections are about exposure rather than authority:
   client can send one.
 - The SSE stream is a response channel, not a push channel. Nothing is ever
   written to it that the client did not request, so holding a long-lived
-  connection open does not make tmon push-driven.
+  connection open does not make shao push-driven.
 - The stdio transport has no port and no token at all, and is preferred where
   the client supports it.
 
 ## Prompt injection
 
 Recorded terminal output is untrusted text: it can contain anything a program
-printed, including text designed to look like instructions. tmon's answer is
+printed, including text designed to look like instructions. shao's answer is
 structural rather than filtering — there is no tool that takes a command from
 the model:
 
@@ -186,17 +186,17 @@ guidance, not enforcement, and it is not what the guarantee rests on.
 Stated plainly, because a security model that lists only its strengths is
 not useful:
 
-- **Anything the user runs themselves.** tmon suggests; if a suggested command
-  is wrong or harmful and the user runs it, tmon did not prevent that.
+- **Anything the user runs themselves.** shao suggests; if a suggested command
+  is wrong or harmful and the user runs it, shao did not prevent that.
 - **Secrets in the buffer.** Redaction is shape-matching. An unusual credential
   format is recorded in the clear, readable by anything running as the user.
 - **A compromised local machine reading history.** File permissions stop other
   users, not code running as this user. What a local compromise still cannot do
-  is use tmon's host keys for anything but reads.
-- **Unpinned host keys.** Until `tmon host verify` records a fingerprint, a
+  is use shao's host keys for anything but reads.
+- **Unpinned host keys.** Until `shao host verify` records a fingerprint, a
   machine-in-the-middle could impersonate a host and see the probe traffic. It
   still could not use the key for anything else, because the restriction lives
   on the real server.
 - **The probe binary on the target.** If someone with root on the target
-  replaces it, it is their machine to change. tmon's guarantee is about what
-  *tmon* can do, not about a host that is already lost.
+  replaces it, it is their machine to change. shao's guarantee is about what
+  *shao* can do, not about a host that is already lost.

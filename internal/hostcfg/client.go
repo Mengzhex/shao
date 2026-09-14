@@ -11,19 +11,19 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"tmon/internal/config"
-	"tmon/internal/probe"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/probe"
 )
 
 const dialTimeout = 15 * time.Second
 
-// forcedCommandPlaceholder is what tmon asks sshd to run.
+// forcedCommandPlaceholder is what shao asks sshd to run.
 //
 // With a forced command configured, sshd discards this entirely and runs the
 // probe. It is sent as a readable string rather than an empty one so that
 // anything logging SSH_ORIGINAL_COMMAND on the target shows plainly what
-// tmon requested and that it was replaced.
-const forcedCommandPlaceholder = "tmon-probe"
+// shao requested and that it was replaced.
+const forcedCommandPlaceholder = "shao-probe"
 
 // Dial opens an SSH connection using the host's dedicated read-only key.
 //
@@ -82,7 +82,7 @@ func hostKeyCallback(h config.HostConfig) (ssh.HostKeyCallback, error) {
 }
 
 // FetchHostKey connects once to learn a host's key fingerprint, so it can be
-// pinned. It is used by `tmon host add`, never on the query path.
+// pinned. It is used by `shao host add`, never on the query path.
 func FetchHostKey(h config.HostConfig) (string, error) {
 	var fingerprint string
 	user := h.User
@@ -118,7 +118,7 @@ func Query(h config.HostConfig, verbs []string) (probe.Response, error) {
 	}
 	if h.VerifiedAt == "" {
 		return probe.Response{}, fmt.Errorf(
-			"host %q has never passed `tmon host verify`; refusing to query it", h.Name)
+			"host %q has never passed `shao host verify`; refusing to query it", h.Name)
 	}
 	known := map[string]bool{}
 	for _, v := range probe.Verbs() {

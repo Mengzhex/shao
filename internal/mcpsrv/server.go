@@ -6,18 +6,18 @@ import (
 	"sort"
 	"sync"
 
-	"tmon/internal/config"
-	"tmon/internal/redact"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/redact"
 )
 
 // Version is reported to clients during the handshake.
 const Version = "1.0.0"
 
 // instructions are shown to the model once, at connect time. They exist to
-// prevent two specific mistakes: treating tmon as something that watches and
-// alerts, and treating a deployment suggestion as something tmon will carry
+// prevent two specific mistakes: treating shao as something that watches and
+// alerts, and treating a deployment suggestion as something shao will carry
 // out.
-const instructions = `tmon gives you read-only access to terminal history recorded on this machine, and to read-only facts about configured remote hosts.
+const instructions = `shao gives you read-only access to terminal history recorded on this machine, and to read-only facts about configured remote hosts.
 
 Use it when the user asks a question about something that already happened in a terminal, or about the state of a host they are planning to deploy to. Call these tools in response to a question; there is nothing to monitor and nothing will be pushed to you.
 
@@ -46,7 +46,7 @@ type Server struct {
 	negotiated  string
 }
 
-// New builds a server exposing tmon's read-only tools.
+// New builds a server exposing shao's read-only tools.
 func New(cfg *config.Config) (*Server, error) {
 	s := &Server{cfg: cfg, tools: map[string]tool{}, negotiated: protocolVersion}
 
@@ -148,10 +148,10 @@ func (s *Server) handleInitialize(req rpcRequest) *rpcResponse {
 		ProtocolVersion: version,
 		Capabilities: map[string]any{
 			// Only tools. No resources, no prompts, and specifically no
-			// subscriptions: nothing about tmon is push-driven.
+			// subscriptions: nothing about shao is push-driven.
 			"tools": map[string]any{"listChanged": false},
 		},
-		ServerInfo:   serverInfo{Name: "tmon", Version: Version},
+		ServerInfo:   serverInfo{Name: "shao", Version: Version},
 		Instructions: instructions,
 	})
 }

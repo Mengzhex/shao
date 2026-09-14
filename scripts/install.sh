@@ -1,24 +1,24 @@
 #!/bin/sh
-# tmon installer for Linux and macOS.
+# shao installer for Linux and macOS.
 #
-#   curl -fsSL https://github.com/Mengzhex/tmon/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/Mengzhex/shao/releases/latest/download/install.sh | sh
 #
 # Environment:
-#   TMON_INSTALL_DIR   where to put the binary. Default: ~/.local/bin, or
+#   SHAO_INSTALL_DIR   where to put the binary. Default: ~/.local/bin, or
 #                      /usr/local/bin when running as root.
-#   TMON_VERSION       a tag such as v0.1.0. Default: the latest release.
-#   TMON_REPO          owner/name, if you forked it.
+#   SHAO_VERSION       a tag such as v0.1.0. Default: the latest release.
+#   SHAO_REPO          owner/name, if you forked it.
 #
 # POSIX sh on purpose: a server may not have bash, and the whole point of this
 # script is that it runs on a machine you have not prepared.
 set -eu
 
-REPO="${TMON_REPO:-Mengzhex/tmon}"
-VERSION="${TMON_VERSION:-latest}"
+REPO="${SHAO_REPO:-Mengzhex/shao}"
+VERSION="${SHAO_VERSION:-latest}"
 
 say() { printf '%s\n' "$*"; }
 die() {
-	printf 'tmon install: %s\n' "$*" >&2
+	printf 'shao install: %s\n' "$*" >&2
 	exit 1
 }
 
@@ -30,17 +30,17 @@ os=$(uname -s)
 case "$os" in
 Linux) os=linux ;;
 Darwin) os=darwin ;;
-*) die "unsupported operating system: $os (tmon builds for Linux, macOS and Windows)" ;;
+*) die "unsupported operating system: $os (shao builds for Linux, macOS and Windows)" ;;
 esac
 
 arch=$(uname -m)
 case "$arch" in
 x86_64 | amd64) arch=amd64 ;;
 aarch64 | arm64) arch=arm64 ;;
-*) die "unsupported architecture: $arch (tmon builds for amd64 and arm64)" ;;
+*) die "unsupported architecture: $arch (shao builds for amd64 and arm64)" ;;
 esac
 
-asset="tmon_${os}_${arch}.tar.gz"
+asset="shao_${os}_${arch}.tar.gz"
 
 if [ "$VERSION" = latest ]; then
 	base="https://github.com/$REPO/releases/latest/download"
@@ -50,8 +50,8 @@ fi
 
 # ---------------------------------------------------------------- destination
 
-if [ -n "${TMON_INSTALL_DIR:-}" ]; then
-	dest="$TMON_INSTALL_DIR"
+if [ -n "${SHAO_INSTALL_DIR:-}" ]; then
+	dest="$SHAO_INSTALL_DIR"
 elif [ "$(id -u)" = 0 ]; then
 	dest=/usr/local/bin
 else
@@ -68,10 +68,10 @@ else
 	die "neither curl nor wget is available"
 fi
 
-tmp=$(mktemp -d 2>/dev/null || mktemp -d -t tmon)
+tmp=$(mktemp -d 2>/dev/null || mktemp -d -t shao)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "tmon: downloading $asset"
+say "shao: downloading $asset"
 fetch "$base/$asset" "$tmp/$asset" ||
 	die "could not download $base/$asset
 Check that a release exists and that $os/$arch is one of its assets."
@@ -89,7 +89,7 @@ if fetch "$base/checksums.txt" "$tmp/checksums.txt" 2>/dev/null; then
 		sum=$(shasum -a 256 "$tmp/$asset" | cut -d' ' -f1)
 	else
 		sum=
-		say "tmon: no sha256 tool found, skipping checksum verification"
+		say "shao: no sha256 tool found, skipping checksum verification"
 	fi
 	if [ -n "$sum" ]; then
 		want=$(grep " [*]\{0,1\}$asset\$" "$tmp/checksums.txt" | cut -d' ' -f1)
@@ -97,53 +97,54 @@ if fetch "$base/checksums.txt" "$tmp/checksums.txt" 2>/dev/null; then
 		[ "$sum" = "$want" ] || die "checksum mismatch for $asset
   expected $want
   got      $sum"
-		say "tmon: checksum ok"
+		say "shao: checksum ok"
 	fi
 else
-	say "tmon: checksums.txt unavailable, skipping verification"
+	say "shao: checksums.txt unavailable, skipping verification"
 fi
 
 # ---------------------------------------------------------------- install
 
 tar -xzf "$tmp/$asset" -C "$tmp" || die "could not extract $asset"
-[ -f "$tmp/tmon" ] || die "archive did not contain a tmon binary"
+[ -f "$tmp/shao" ] || die "archive did not contain a shao binary"
 
 mkdir -p "$dest" || die "could not create $dest"
-chmod 0755 "$tmp/tmon"
+chmod 0755 "$tmp/shao"
 
 # mv across filesystems fails on some systems; cp then rm always works.
-cp "$tmp/tmon" "$dest/tmon.new" || die "could not write to $dest (try sudo, or set TMON_INSTALL_DIR)"
-mv -f "$dest/tmon.new" "$dest/tmon"
+cp "$tmp/shao" "$dest/shao.new" || die "could not write to $dest (try sudo, or set SHAO_INSTALL_DIR)"
+mv -f "$dest/shao.new" "$dest/shao"
 
 # On macOS an unsigned binary carries a quarantine flag and Gatekeeper reports
 # it as "damaged", which sends people looking for a corrupt download. Clearing
 # it here is safe: this script fetched the file and just verified its checksum.
 if [ "$os" = darwin ] && need xattr; then
-	xattr -d com.apple.quarantine "$dest/tmon" 2>/dev/null || true
+	xattr -d com.apple.quarantine "$dest/shao" 2>/dev/null || true
 fi
 
-say "tmon: installed to $dest/tmon"
-"$dest/tmon" version || true
+say "shao: installed to $dest/shao"
+"$dest/shao" version || true
 
 # ------------------------------------------------------ PATH, and shadowing
 #
 # Two different problems look identical from the prompt: the directory is not
-# on PATH, or it is but another program named tmon comes first. The second is
-# not hypothetical. The Linux kernel's thermal monitor is also called tmon,
-# ships as /usr/bin/tmon in linux-tools / linux-misc-tools, and answers
-# `tmon start` with "TMON needs to be run as root" -- which reads as this
-# program refusing to start, rather than as a different program entirely.
+# on PATH, or it is but another program of the same name comes first. The
+# second used to be routine for this tool under its old name, which collided
+# with a program shipped by the distribution, and the symptom was an error
+# message from that other program being read as this one refusing to start.
+# The name no longer collides, but the check is cheap and the failure is
+# otherwise very hard to recognise.
 
-found=$(command -v tmon 2>/dev/null || true)
+found=$(command -v shao 2>/dev/null || true)
 case ":$PATH:" in
 *":$dest:"*)
-	if [ -n "$found" ] && [ "$found" != "$dest/tmon" ]; then
+	if [ -n "$found" ] && [ "$found" != "$dest/shao" ]; then
 		say ""
-		say "Warning: a different program named tmon is already on your PATH:"
+		say "Warning: a different program named shao is already on your PATH:"
 		say "  $found"
-		say "It comes before $dest, so typing 'tmon' runs that one. Either call"
+		say "It comes before $dest, so typing 'shao' runs that one. Either call"
 		say "this one by path:"
-		say "  $dest/tmon start"
+		say "  $dest/shao start"
 		say "or put $dest first:"
 		say "  echo 'export PATH=\"$dest:\$PATH\"' >> ~/.bashrc && exec \$SHELL"
 	fi
@@ -160,4 +161,4 @@ case ":$PATH:" in
 esac
 
 say ""
-say "Next: run 'tmon start' in a terminal you want recorded."
+say "Next: run 'shao start' in a terminal you want recorded."

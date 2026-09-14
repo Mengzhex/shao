@@ -18,11 +18,11 @@ import (
 // carrying VT-encoded traffic with a console host translating for programs
 // that still use the old console API. That means a recorded PowerShell
 // session produces the same kind of byte stream a recorded bash session does,
-// and the rest of tmon needs no Windows-specific handling.
+// and the rest of shao needs no Windows-specific handling.
 //
 // NOTE: this file talks to the Win32 API directly rather than through a
 // wrapper library, to keep the dependency surface small. It is the part of
-// tmon most in need of an actual compile-and-run check on Windows.
+// shao most in need of an actual compile-and-run check on Windows.
 
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, from processthreadsapi.h. It is not
 // exported by x/sys/windows, so it is defined here.
@@ -136,12 +136,12 @@ func startPlatformPTY(exe string, args, env []string, cols, rows int) (_ PTY, er
 
 	// Cut the child off from this process's standard handles.
 	//
-	// This is the difference between tmon recording anything and recording
+	// This is the difference between shao recording anything and recording
 	// nothing, and it is not obvious. The pseudoconsole attribute above does
 	// attach the child to the pseudoconsole -- a child asking its console for
 	// dimensions correctly gets the size passed to CreatePseudoConsole. But
 	// its *standard output handle* is a separate matter: without this, the
-	// child inherits tmon's own stdout, so anything it prints goes straight
+	// child inherits shao's own stdout, so anything it prints goes straight
 	// there and never passes through the pty. The output still appears on
 	// screen, which makes the failure look like a capture bug rather than a
 	// handle-inheritance one.
@@ -149,7 +149,7 @@ func startPlatformPTY(exe string, args, env []string, cols, rows int) (_ PTY, er
 	// Declaring the standard handles as null says the child has none to
 	// inherit, so console initialisation points them at its console, which is
 	// the pseudoconsole. Microsoft's own sample omits this because a GUI host
-	// has no stdio worth inheriting; a command-line tool like tmon does.
+	// has no stdio worth inheriting; a command-line tool like shao does.
 	si.StartupInfo.Flags |= windows.STARTF_USESTDHANDLES
 	si.StartupInfo.StdInput = 0
 	si.StartupInfo.StdOutput = 0
@@ -244,7 +244,7 @@ func (p *winPTY) Close() error {
 		// The process and thread handles are deliberately left open.
 		//
 		// Close is called concurrently with Wait -- by the signal handler, and
-		// by the watcher that implements `tmon end` -- and Wait is blocked in
+		// by the watcher that implements `shao end` -- and Wait is blocked in
 		// WaitForSingleObject on exactly this process handle. Closing it there
 		// makes that call fail with "The handle is invalid", which then
 		// surfaced as a spurious error at the end of an otherwise clean

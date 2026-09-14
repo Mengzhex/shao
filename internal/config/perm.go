@@ -6,7 +6,7 @@ import (
 )
 
 // Terminal buffers hold whatever scrolled past your eyes, and redaction is a
-// best effort rather than a guarantee. So every file tmon creates is
+// best effort rather than a guarantee. So every file shao creates is
 // owner-only. On POSIX that is 0600/0700 directly. On Windows the mode bits
 // are largely ignored by the filesystem, and what actually keeps the tree
 // private is that it lives under the user profile directory and inherits its

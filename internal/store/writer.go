@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // ringWriter appends to a segmented ring on disk. It is safe for concurrent

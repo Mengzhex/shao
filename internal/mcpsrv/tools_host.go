@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"tmon/internal/config"
-	"tmon/internal/hostcfg"
-	"tmon/internal/probe"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/hostcfg"
+	"github.com/Mengzhex/shao/internal/probe"
 )
 
 // deployAspects is what get_deploy_context gathers. It is the set of facts
@@ -23,9 +23,9 @@ func (s *Server) registerHostTools() {
 	s.register(toolDef{
 		Name:  "list_hosts",
 		Title: "List configured hosts",
-		Description: `List the remote hosts tmon can read facts from, and how read-only access to each is enforced.
+		Description: `List the remote hosts shao can read facts from, and how read-only access to each is enforced.
 
-A host appears as queryable only when its target machine pins tmon's SSH key to a read-only probe and that restriction has been verified. Hosts that could not be set up that way are listed as disabled and cannot be queried at all; there is no weaker mode.`,
+A host appears as queryable only when its target machine pins shao's SSH key to a read-only probe and that restriction has been verified. Hosts that could not be set up that way are listed as disabled and cannot be queried at all; there is no weaker mode.`,
 		InputSchema: schema(map[string]any{}),
 		Annotations: readOnlyAnnotations("List configured hosts"),
 	}, s.toolListHosts)
@@ -37,7 +37,7 @@ A host appears as queryable only when its target machine pins tmon's SSH key to 
 
 Each aspect maps to a fixed set of read-only commands chosen on the target machine, not composed here. The response echoes the exact command that produced each section, so what ran is visible rather than assumed.
 
-Use this to ground deployment advice in what is actually on the host. Report the commands the user should run themselves; tmon cannot run them.`,
+Use this to ground deployment advice in what is actually on the host. Report the commands the user should run themselves; shao cannot run them.`,
 		InputSchema: schema(map[string]any{
 			"host": prop("string", "Which configured host to read. Use list_hosts to see the names."),
 			"aspects": map[string]any{
@@ -54,7 +54,7 @@ Use this to ground deployment advice in what is actually on the host. Report the
 		Title: "Gather everything needed to plan a deployment",
 		Description: `Gather in one call the facts a deployment decision depends on: OS and kernel, CPU and memory, free disk, listening ports, docker and compose state, nginx configuration, running and failed services, and SELinux or AppArmor enforcement.
 
-Call this when the user is planning to deploy something to a configured host, then write out the commands for them to run. tmon has no ability to execute any of them.`,
+Call this when the user is planning to deploy something to a configured host, then write out the commands for them to run. shao has no ability to execute any of them.`,
 		InputSchema: schema(map[string]any{
 			"host": prop("string", "Which configured host to inspect."),
 		}, "host"),
@@ -64,7 +64,7 @@ Call this when the user is planning to deploy something to a configured host, th
 
 func (s *Server) toolListHosts(_ json.RawMessage) *callToolResult {
 	if len(s.cfg.Hosts) == 0 {
-		return textResult("No hosts are configured. A host is added with `tmon host add <name> --address <addr>`, which generates a dedicated read-only key and prints a setup script to run on the target.")
+		return textResult("No hosts are configured. A host is added with `shao host add <name> --address <addr>`, which generates a dedicated read-only key and prints a setup script to run on the target.")
 	}
 
 	var queryable, blocked []string
@@ -75,7 +75,7 @@ func (s *Server) toolListHosts(_ json.RawMessage) *callToolResult {
 		case !h.Enforcement.Queryable():
 			blocked = append(blocked, line+" -- not queryable: this host has no sshd-enforced read-only access")
 		case h.VerifiedAt == "":
-			blocked = append(blocked, line+" -- not queryable: enforcement has never been verified (`tmon host verify "+h.Name+"`)")
+			blocked = append(blocked, line+" -- not queryable: enforcement has never been verified (`shao host verify "+h.Name+"`)")
 		default:
 			detail := line + fmt.Sprintf(" verified=%s", h.VerifiedAt)
 			if h.Enforcement == config.EnforceForcedCommandUser {
@@ -143,12 +143,12 @@ func (s *Server) queryHost(name string, aspects []string, deployFraming bool) *c
 	}
 	if !host.Enforcement.Queryable() {
 		return errorResult(
-			"host %q is configured with enforcement=%s, so environment queries are disabled for it. tmon deliberately has no mode that queries a host without the target machine enforcing read-only access.",
+			"host %q is configured with enforcement=%s, so environment queries are disabled for it. shao deliberately has no mode that queries a host without the target machine enforcing read-only access.",
 			name, host.Enforcement)
 	}
 	if host.VerifiedAt == "" {
 		return errorResult(
-			"host %q has never passed `tmon host verify`, so tmon will not query it. Run that command to confirm the target actually refuses anything but the read-only probe.",
+			"host %q has never passed `shao host verify`, so shao will not query it. Run that command to confirm the target actually refuses anything but the read-only probe.",
 			name)
 	}
 
@@ -182,7 +182,7 @@ func (s *Server) queryHost(name string, aspects []string, deployFraming bool) *c
 	b.WriteString("every command below was chosen on the target host from a fixed list and only reads state\n")
 
 	if deployFraming {
-		b.WriteString("\nThis is the state of the machine as it is now. Use it to write deployment commands for the user to run; tmon cannot execute anything.\n")
+		b.WriteString("\nThis is the state of the machine as it is now. Use it to write deployment commands for the user to run; shao cannot execute anything.\n")
 	}
 
 	for _, r := range resp.Results {

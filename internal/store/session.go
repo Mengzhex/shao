@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 const (
 	metaFile  = "meta.json"
 	indexFile = "index.jsonl"
-	// stopFile is how `tmon end` asks a recorder in another process to shut
+	// stopFile is how `shao end` asks a recorder in another process to shut
 	// down. A file rather than a signal, because a recorder has to finish
 	// cleanly -- flush both rings, close the open command block, mark the
 	// session ended -- and killing the process would lose exactly the last

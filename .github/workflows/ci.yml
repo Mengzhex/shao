@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  # The point of running on all three is that tmon has two separate capture
+  # The point of running on all three is that shao has two separate capture
   # implementations behind build tags -- the Windows pseudoconsole and the
   # POSIX pty -- and building on one proves nothing about the other. Until
   # this workflow runs, the POSIX path has only ever been compiled, never
@@ -55,6 +55,6 @@ jobs:
       - run: bash scripts/release.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: tmon-dist
+          name: shao-dist
           path: dist/
           retention-days: 14

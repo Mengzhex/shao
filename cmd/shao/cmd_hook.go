@@ -9,43 +9,43 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // The hook is the answer to "I want it to just record, without thinking about
 // it". Recording has to begin when a shell begins, so the only way to cover
 // every new terminal is for the shell's own startup file to hand over to
-// tmon. That is a change to the user's dotfiles, so it happens only when they
+// shao. That is a change to the user's dotfiles, so it happens only when they
 // ask for it, it is fenced with markers, the original is backed up, and
 // uninstall puts things back.
 
 const (
-	hookBegin = "# >>> tmon terminal recording >>>"
-	hookEnd   = "# <<< tmon terminal recording <<<"
+	hookBegin = "# >>> shao terminal recording >>>"
+	hookEnd   = "# <<< shao terminal recording <<<"
 )
 
-// posixHook re-executes the shell under tmon.
+// posixHook re-executes the shell under shao.
 //
-// The guards matter. TMON_RECORDING is set inside a recorded shell, so the
+// The guards matter. SHAO_RECORDING is set inside a recorded shell, so the
 // rc file being read again by that shell does not recurse. The -t test skips
 // non-interactive shells, which is what scp, rsync and remote command
 // execution rely on: recording those would corrupt their protocols.
-const posixHook = `if [ -z "$TMON_RECORDING" ] && [ -t 0 ] && [ -t 1 ] && command -v tmon >/dev/null 2>&1; then
+const posixHook = `if [ -z "$SHAO_RECORDING" ] && [ -t 0 ] && [ -t 1 ] && command -v shao >/dev/null 2>&1; then
   case "$-" in
-    *i*) exec tmon shell ;;
+    *i*) exec shao shell ;;
   esac
 fi`
 
 // pwshHook is the PowerShell equivalent. Exiting afterwards makes closing the
 // recorded shell close the window, matching what exec does on POSIX.
-const pwshHook = `if (-not $env:TMON_RECORDING -and [Environment]::UserInteractive -and (Get-Command tmon -ErrorAction SilentlyContinue)) {
-  tmon shell
+const pwshHook = `if (-not $env:SHAO_RECORDING -and [Environment]::UserInteractive -and (Get-Command shao -ErrorAction SilentlyContinue)) {
+  shao shell
   exit
 }`
 
 func cmdHook(cfg *config.Config, args []string) {
 	if len(args) == 0 {
-		fail("usage: tmon hook install|uninstall|status")
+		fail("usage: shao hook install|uninstall|status")
 	}
 	fs := flag.NewFlagSet("hook", flag.ExitOnError)
 	profile := fs.String("profile", "", "modify a specific startup file instead of the detected ones")
@@ -121,7 +121,7 @@ func hookTargets(explicit string) []hookTarget {
 // ensureHook installs the startup hook if it is not there already, and says
 // plainly what it did.
 //
-// This runs as part of `tmon start` because "install it once and every new
+// This runs as part of `shao start` because "install it once and every new
 // terminal is covered" is the behaviour people expect, and leaving it as a
 // separate optional step meant most terminals silently went unrecorded. It
 // still edits a startup file, so it backs the file up, announces itself, and
@@ -129,7 +129,7 @@ func hookTargets(explicit string) []hookTarget {
 func ensureHook() {
 	targets := hookTargets("")
 	if len(targets) == 0 {
-		fmt.Fprintln(os.Stderr, "tmon: could not find a shell startup file; only this terminal will be recorded")
+		fmt.Fprintln(os.Stderr, "shao: could not find a shell startup file; only this terminal will be recorded")
 		return
 	}
 
@@ -143,7 +143,7 @@ func ensureHook() {
 
 	fmt.Println("Setting up automatic recording for new terminals.")
 	hookInstall(targets[:1], false)
-	fmt.Println("Undo any time with `tmon hook uninstall`.")
+	fmt.Println("Undo any time with `shao hook uninstall`.")
 	fmt.Println()
 }
 
@@ -151,7 +151,7 @@ func hookInstall(targets []hookTarget, dryRun bool) {
 	for _, t := range targets {
 		existing, err := os.ReadFile(t.path)
 		if err != nil && !os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "tmon: skipping %s: %v\n", t.path, err)
+			fmt.Fprintf(os.Stderr, "shao: skipping %s: %v\n", t.path, err)
 			continue
 		}
 		if strings.Contains(string(existing), hookBegin) {
@@ -159,7 +159,7 @@ func hookInstall(targets []hookTarget, dryRun bool) {
 			continue
 		}
 
-		block := fmt.Sprintf("\n%s\n# Added by `tmon hook install`. Remove with `tmon hook uninstall`.\n%s\n%s\n",
+		block := fmt.Sprintf("\n%s\n# Added by `shao hook install`. Remove with `shao hook uninstall`.\n%s\n%s\n",
 			hookBegin, t.snippet, hookEnd)
 
 		if dryRun {
@@ -167,15 +167,15 @@ func hookInstall(targets []hookTarget, dryRun bool) {
 			continue
 		}
 		if len(existing) > 0 {
-			backup := t.path + ".tmon-backup-" + time.Now().Format("20060102150405")
+			backup := t.path + ".shao-backup-" + time.Now().Format("20060102150405")
 			if err := os.WriteFile(backup, existing, 0o600); err != nil {
-				fmt.Fprintf(os.Stderr, "tmon: could not back up %s: %v\n", t.path, err)
+				fmt.Fprintf(os.Stderr, "shao: could not back up %s: %v\n", t.path, err)
 				continue
 			}
 			fmt.Printf("backed up %s -> %s\n", t.path, backup)
 		}
 		if err := appendFile(t.path, block); err != nil {
-			fmt.Fprintf(os.Stderr, "tmon: could not modify %s: %v\n", t.path, err)
+			fmt.Fprintf(os.Stderr, "shao: could not modify %s: %v\n", t.path, err)
 			continue
 		}
 		fmt.Printf("installed in %s\n", t.path)
@@ -183,7 +183,7 @@ func hookInstall(targets []hookTarget, dryRun bool) {
 	if !dryRun {
 		fmt.Println()
 		fmt.Println("New terminals will record themselves from now on. Terminals already open are")
-		fmt.Println("unaffected; run `tmon shell` in one to start recording it.")
+		fmt.Println("unaffected; run `shao shell` in one to start recording it.")
 	}
 }
 
@@ -199,15 +199,15 @@ func hookUninstall(targets []hookTarget, dryRun bool) {
 		}
 		cleaned, ok := removeBlock(text)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "tmon: %s contains the start marker but not the end marker; leaving it alone\n", t.path)
+			fmt.Fprintf(os.Stderr, "shao: %s contains the start marker but not the end marker; leaving it alone\n", t.path)
 			continue
 		}
 		if dryRun {
-			fmt.Printf("would remove the tmon block from %s\n", t.path)
+			fmt.Printf("would remove the shao block from %s\n", t.path)
 			continue
 		}
 		if err := os.WriteFile(t.path, []byte(cleaned), 0o600); err != nil {
-			fmt.Fprintf(os.Stderr, "tmon: could not modify %s: %v\n", t.path, err)
+			fmt.Fprintf(os.Stderr, "shao: could not modify %s: %v\n", t.path, err)
 			continue
 		}
 		fmt.Printf("removed from %s\n", t.path)

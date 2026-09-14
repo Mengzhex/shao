@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/record"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/record"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 func cmdShell(cfg *config.Config, args []string) {
@@ -20,8 +20,8 @@ func cmdShell(cfg *config.Config, args []string) {
 	quiet := fs.Bool("quiet", false, "suppress the banner and closing summary")
 	check(fs.Parse(args))
 
-	if os.Getenv("TMON_RECORDING") == "1" {
-		fail("this shell is already being recorded as session %s", os.Getenv("TMON_SESSION_ID"))
+	if os.Getenv("SHAO_RECORDING") == "1" {
+		fail("this shell is already being recorded as session %s", os.Getenv("SHAO_SESSION_ID"))
 	}
 
 	code, err := record.Run(context.Background(), record.Options{
@@ -44,7 +44,7 @@ func cmdRun(cfg *config.Config, args []string) {
 
 	cmdArgs := fs.Args()
 	if len(cmdArgs) == 0 {
-		fail("nothing to run: use `tmon run -- ./deploy.sh`")
+		fail("nothing to run: use `shao run -- ./deploy.sh`")
 	}
 
 	code, err := record.Run(context.Background(), record.Options{
@@ -69,8 +69,8 @@ func cmdSessions(cfg *config.Config, args []string) {
 	everything, err := store.List(cfg.SessionsDir())
 	check(err)
 	if len(everything) == 0 {
-		fmt.Println("No recorded sessions yet. Start one with `tmon start`.")
-		fmt.Println("Terminals opened without tmon are not recorded; `tmon start` also makes new ones record themselves.")
+		fmt.Println("No recorded sessions yet. Start one with `shao start`.")
+		fmt.Println("Terminals opened without shao are not recorded; `shao start` also makes new ones record themselves.")
 		return
 	}
 
@@ -118,10 +118,10 @@ func cmdTail(cfg *config.Config, args []string) {
 	check(err)
 
 	if res.Span.Truncated {
-		fmt.Fprintln(os.Stderr, "tmon: note: the ring buffer has discarded older output")
+		fmt.Fprintln(os.Stderr, "shao: note: the ring buffer has discarded older output")
 	}
 	if res.Span.GapDetected {
-		fmt.Fprintln(os.Stderr, "tmon: WARNING: a discontinuity was detected in this buffer")
+		fmt.Fprintln(os.Stderr, "shao: WARNING: a discontinuity was detected in this buffer")
 	}
 	fmt.Println(strings.Join(res.Lines, "\n"))
 }
@@ -149,7 +149,7 @@ func cmdLastError(cfg *config.Config, args []string) {
 	}
 	if last == nil {
 		if info.Meta.ShellIntegration == "none" || info.Meta.ShellIntegration == "" {
-			fail("session %s has no command index (its shell could not be instrumented); try `tmon tail %s`",
+			fail("session %s has no command index (its shell could not be instrumented); try `shao tail %s`",
 				info.Meta.ID, info.Meta.ID)
 		}
 		fmt.Printf("No failed commands in session %s.\n", info.Meta.ID)
@@ -169,7 +169,7 @@ func cmdLastError(cfg *config.Config, args []string) {
 	res, err := store.ReadRange(store.StreamDir(info.Dir, store.StreamCooked), last.CookedOff, int64(last.CookedLen))
 	check(err)
 	if res.Span.Truncated && res.StartOffset > last.CookedOff {
-		fmt.Fprintln(os.Stderr, "tmon: note: part of this command's output has already been discarded by the ring buffer")
+		fmt.Fprintln(os.Stderr, "shao: note: part of this command's output has already been discarded by the ring buffer")
 	}
 
 	out := strings.TrimRight(string(res.Data), "\n")

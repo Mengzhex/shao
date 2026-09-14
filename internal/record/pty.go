@@ -1,21 +1,21 @@
 // Package record runs a shell inside a pseudo-terminal and writes everything
 // that passes through it into a session's ring buffers.
 //
-// Capturing at the pty is the decision the rest of tmon rests on. A pty sits
+// Capturing at the pty is the decision the rest of shao rests on. A pty sits
 // between the shell and the terminal emulator, so every byte the shell writes
 // passes through here exactly once, in order, whether it came from a local
 // command, a script, or a shell on the far side of an ssh connection. Nothing
 // is sampled and nothing is inferred from the screen, so output that scrolls
 // past faster than anyone could read is still recorded in full.
 //
-// It also explains why tmon does not care which terminal emulator is in use.
+// It also explains why shao does not care which terminal emulator is in use.
 // Windows Terminal, PuTTY, MobaXterm, iTerm, the VS Code panel: they are all
 // on the far side of this pty and none of them is involved in the capture.
 //
 // The trade this makes is that recording starts when the shell starts. A
 // terminal window that is already open cannot be recorded retroactively, so
-// coverage comes from starting sessions with `tmon shell`, or from
-// `tmon hook install` which makes new terminals do that automatically.
+// coverage comes from starting sessions with `shao shell`, or from
+// `shao hook install` which makes new terminals do that automatically.
 package record
 
 import (
@@ -58,7 +58,7 @@ func ResolveShell(override string) string {
 	if override != "" {
 		return override
 	}
-	if v := os.Getenv("TMON_SHELL"); v != "" {
+	if v := os.Getenv("SHAO_SHELL"); v != "" {
 		return v
 	}
 	if runtime.GOOS == "windows" {

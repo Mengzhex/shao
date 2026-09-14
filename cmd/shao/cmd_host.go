@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/hostcfg"
-	"tmon/internal/probe"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/hostcfg"
+	"github.com/Mengzhex/shao/internal/probe"
 )
 
 func cmdHost(cfg *config.Config, args []string) {
 	if len(args) == 0 {
-		fail("usage: tmon host add|list|verify|query ...")
+		fail("usage: shao host add|list|verify|query ...")
 	}
 	switch args[0] {
 	case "add":
@@ -41,7 +41,7 @@ func cmdHostAdd(cfg *config.Config, args []string) {
 	positional := parseFlags(fs, args)
 
 	if len(positional) < 1 {
-		fail("usage: tmon host add NAME --address ADDR [--user U] [--tier root|user]")
+		fail("usage: shao host add NAME --address ADDR [--user U] [--tier root|user]")
 	}
 	name := positional[0]
 	if *address == "" {
@@ -96,33 +96,33 @@ func cmdHostAdd(cfg *config.Config, args []string) {
 
 	fmt.Printf("Added host %q, and generated a dedicated read-only key at:\n  %s\n\n", name, privPath)
 	fmt.Println("This host is NOT queryable yet. Two steps remain, both on the target machine,")
-	fmt.Println("because tmon has no write access there and is not going to acquire any.")
+	fmt.Println("because shao has no write access there and is not going to acquire any.")
 	fmt.Println()
 
 	fmt.Println("Step 1. Copy the probe binary and the install script to the target:")
 	if localProbe == "" {
 		fmt.Println()
-		fmt.Printf("  The Linux probe binary was not found next to tmon or in %s.\n", filepath.Join(cfg.Root(), "probe"))
+		fmt.Printf("  The Linux probe binary was not found next to shao or in %s.\n", filepath.Join(cfg.Root(), "probe"))
 		fmt.Println("  Build it with:")
-		fmt.Println("    GOOS=linux GOARCH=amd64 go build -o tmon-probe ./cmd/tmon")
-		fmt.Println("  (the same binary serves as the probe; sshd invokes it under the name tmon-probe)")
+		fmt.Println("    GOOS=linux GOARCH=amd64 go build -o shao-probe ./cmd/shao")
+		fmt.Println("  (the same binary serves as the probe; sshd invokes it under the name shao-probe)")
 		fmt.Println()
-		fmt.Printf("  scp tmon-probe %s@%s:/tmp/tmon-probe\n", account, *address)
+		fmt.Printf("  scp shao-probe %s@%s:/tmp/shao-probe\n", account, *address)
 	} else {
-		fmt.Printf("\n  scp %s %s@%s:/tmp/tmon-probe\n", localProbe, account, *address)
+		fmt.Printf("\n  scp %s %s@%s:/tmp/shao-probe\n", localProbe, account, *address)
 	}
-	fmt.Printf("  scp %s %s@%s:/tmp/tmon-install.sh\n", plan.ScriptPath, account, *address)
+	fmt.Printf("  scp %s %s@%s:/tmp/shao-install.sh\n", plan.ScriptPath, account, *address)
 	fmt.Println()
 
 	fmt.Println("Step 2. Run the install script on the target:")
 	if t == hostcfg.TierRoot {
-		fmt.Printf("  ssh %s@%s 'sudo sh /tmp/tmon-install.sh'\n", account, *address)
+		fmt.Printf("  ssh %s@%s 'sudo sh /tmp/shao-install.sh'\n", account, *address)
 	} else {
-		fmt.Printf("  ssh %s@%s 'sh /tmp/tmon-install.sh'\n", account, *address)
+		fmt.Printf("  ssh %s@%s 'sh /tmp/shao-install.sh'\n", account, *address)
 	}
 	fmt.Println()
-	fmt.Printf("Then prove it worked:\n  tmon host verify %s\n\n", name)
-	fmt.Println("Until that check passes, tmon refuses to query this host at all.")
+	fmt.Printf("Then prove it worked:\n  shao host verify %s\n\n", name)
+	fmt.Println("Until that check passes, shao refuses to query this host at all.")
 	fmt.Printf("\nThe script is readable at %s; it installs one forced-command key and nothing else.\n", plan.ScriptPath)
 }
 
@@ -132,14 +132,14 @@ func findProbeBinary() string {
 	if exe, err := os.Executable(); err == nil {
 		dir := filepath.Dir(exe)
 		candidates = append(candidates,
-			filepath.Join(dir, "tmon-probe"),
-			filepath.Join(dir, "tmon-probe-linux-amd64"),
+			filepath.Join(dir, "shao-probe"),
+			filepath.Join(dir, "shao-probe-linux-amd64"),
 		)
 	}
 	if home, err := os.UserHomeDir(); err == nil {
 		candidates = append(candidates,
-			filepath.Join(home, ".tmon", "probe", "tmon-probe"),
-			filepath.Join(home, ".tmon", "probe", "tmon-probe-linux-amd64"),
+			filepath.Join(home, ".shao", "probe", "shao-probe"),
+			filepath.Join(home, ".shao", "probe", "shao-probe-linux-amd64"),
 		)
 	}
 	for _, c := range candidates {
@@ -152,7 +152,7 @@ func findProbeBinary() string {
 
 func cmdHostList(cfg *config.Config) {
 	if len(cfg.Hosts) == 0 {
-		fmt.Println("No hosts configured. Add one with `tmon host add NAME --address ADDR`.")
+		fmt.Println("No hosts configured. Add one with `shao host add NAME --address ADDR`.")
 		return
 	}
 	for _, h := range cfg.Hosts {
@@ -161,7 +161,7 @@ func cmdHostList(cfg *config.Config) {
 		case !h.Enforcement.Queryable():
 			state = "disabled (no sshd-enforced read-only access)"
 		case h.VerifiedAt == "":
-			state = "unverified (run `tmon host verify " + h.Name + "`)"
+			state = "unverified (run `shao host verify " + h.Name + "`)"
 		}
 		fmt.Printf("%-16s %s@%s:%d  %-22s %s\n",
 			h.Name, h.User, h.Address, h.SSHPort(), h.Enforcement, state)
@@ -172,7 +172,7 @@ func cmdHostVerify(cfg *config.Config, args []string) {
 	fs := flag.NewFlagSet("host verify", flag.ExitOnError)
 	positional := parseFlags(fs, args)
 	if len(positional) < 1 {
-		fail("usage: tmon host verify NAME")
+		fail("usage: shao host verify NAME")
 	}
 	name := positional[0]
 
@@ -233,7 +233,7 @@ func cmdHostQuery(cfg *config.Config, args []string) {
 	aspects := fs.String("aspects", "os,disk,mem,ports", "comma-separated aspects to read")
 	check(fs.Parse(args))
 	if fs.NArg() < 1 {
-		fail("usage: tmon host query NAME [--aspects os,disk,...]\nsupported aspects: %s",
+		fail("usage: shao host query NAME [--aspects os,disk,...]\nsupported aspects: %s",
 			strings.Join(probe.Verbs(), ", "))
 	}
 

@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // Check is one enforcement test and its outcome.
@@ -36,7 +36,7 @@ type VerifyReport struct {
 // This exists because "the key is restricted" is a claim, and a claim about
 // security that is never tested tends to drift from reality: a typo in
 // authorized_keys, an sshd that was never reloaded, a probe path that moved.
-// So instead of trusting the configuration, tmon asks the host to run
+// So instead of trusting the configuration, shao asks the host to run
 // arbitrary commands, read a sensitive file, allocate a terminal and forward
 // a port, and passes only if every one of those is refused or ignored.
 //
@@ -101,11 +101,11 @@ func checkProbeResponds(client *ssh.Client) Check {
 // checkArbitraryCommandIgnored is the central test. If a forced command is in
 // effect, this echo never runs and the canary cannot appear in the output.
 func checkArbitraryCommandIgnored(client *ssh.Client, nonce string) Check {
-	canary := "tmon-canary-" + nonce
+	canary := "shao-canary-" + nonce
 	out, err := runRaw(client, "echo "+canary)
 	c := Check{Name: "arbitrary-command-ignored", Tested: true}
 	if strings.Contains(out, canary) {
-		c.Detail = "the host executed a command tmon supplied. There is no forced command in effect and this host is NOT read-only"
+		c.Detail = "the host executed a command shao supplied. There is no forced command in effect and this host is NOT read-only"
 		return c
 	}
 	c.Pass = true
@@ -134,7 +134,7 @@ func checkSensitiveReadIgnored(client *ssh.Client) Check {
 // forced command means it never runs, which is exactly what is being proven;
 // nothing is created even if the check fails.
 func checkWriteAttemptIgnored(client *ssh.Client, nonce string) Check {
-	path := "/tmp/tmon-verify-" + nonce
+	path := "/tmp/shao-verify-" + nonce
 	out, _ := runRaw(client, "touch "+path+" && echo created-"+nonce)
 	c := Check{Name: "write-attempt-ignored", Tested: true}
 	if strings.Contains(out, "created-"+nonce) {

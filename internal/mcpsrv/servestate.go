@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // A running endpoint records where it is and how to stop it.
 //
 // This exists because the alternative is worse than untidy. Without a precise
 // way to stop the server, the obvious move is to kill it by image name --
-// `taskkill /F /IM tmon.exe`, `pkill tmon` -- and every recorder wrapping a
+// `taskkill /F /IM shao.exe`, `pkill shao` -- and every recorder wrapping a
 // live terminal has that same image name. Doing so kills the shells those
 // recorders own, taking out terminals that had nothing to do with the server.
 // The fix is to make stopping it precise, so nobody reaches for the blunt

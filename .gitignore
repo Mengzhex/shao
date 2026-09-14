@@ -1,9 +1,13 @@
 # Build output. scripts/release.sh rebuilds dist/ from scratch every run, so
 # nothing in it is worth keeping, and the archives are several MB each.
 /dist/
-/tmon
-/tmon.exe
-/tmon-probe-*
+/shao
+/shao.exe
+/shao-probe-*
+
+# Any stray executable at the root. Renaming the tool once left the previous
+# binary un-ignored, and `git add -A` committed 8 MB of it.
+/*.exe
 
 # Test and profiling artifacts
 *.test

@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/cook"
-	"tmon/internal/redact"
-	"tmon/internal/shellint"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/cook"
+	"github.com/Mengzhex/shao/internal/redact"
+	"github.com/Mengzhex/shao/internal/shellint"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // Version identifies the recorder that produced a session, so a buffer
@@ -26,14 +26,14 @@ const Version = "1"
 type Options struct {
 	Cfg *config.Config
 	// Label names the session so it can be asked about by name later,
-	// e.g. `tmon shell --label deploy`.
+	// e.g. `shao shell --label deploy`.
 	Label string
 	// Host attributes the session to a configured host.
 	Host string
 	// Shell overrides which shell to record.
 	Shell string
 	// Args, when set, runs one command instead of an interactive shell,
-	// which is what `tmon run -- ./deploy.sh` uses.
+	// which is what `shao run -- ./deploy.sh` uses.
 	Args []string
 	// Quiet suppresses the banner and closing summary.
 	Quiet bool
@@ -51,7 +51,7 @@ func Run(ctx context.Context, opts Options) (int, error) {
 	}
 
 	// Reclaim old sessions before adding another. Doing it here rather than on
-	// a timer keeps tmon strictly demand-driven: nothing runs in the
+	// a timer keeps shao strictly demand-driven: nothing runs in the
 	// background when no session is being recorded.
 	if days := cfg.Buffer.RetainDays; days > 0 {
 		_, _ = store.PruneOlderThan(cfg.SessionsDir(), time.Duration(days)*24*time.Hour)
@@ -106,7 +106,7 @@ func Run(ctx context.Context, opts Options) (int, error) {
 	}
 	if oneShot {
 		// The argv is stored in metadata, which the stream redactor never
-		// sees, so it is scrubbed here. `tmon run -- mysql -psecret ...` is
+		// sees, so it is scrubbed here. `shao run -- mysql -psecret ...` is
 		// exactly the case this covers.
 		meta.Argv = make([]string, len(opts.Args))
 		for i, a := range opts.Args {
@@ -135,10 +135,10 @@ func Run(ctx context.Context, opts Options) (int, error) {
 	defer con.Leave()
 
 	// The recorded shell is marked so that a profile hook installed by
-	// `tmon hook install` does not try to record it again and recurse.
+	// `shao hook install` does not try to record it again and recurse.
 	childEnv := append(append([]string{}, launch.Env...),
-		"TMON_RECORDING=1",
-		"TMON_SESSION_ID="+meta.ID,
+		"SHAO_RECORDING=1",
+		"SHAO_SESSION_ID="+meta.ID,
 	)
 
 	pty, err := startPTY(exe, args, childEnv, cols, rows)
@@ -188,7 +188,7 @@ func Run(ctx context.Context, opts Options) (int, error) {
 		_ = sess.Resize(c, rw)
 	})
 
-	// Watch for `tmon end` in another process. Closing the pty ends the shell
+	// Watch for `shao end` in another process. Closing the pty ends the shell
 	// and the pump loop drains normally, so the session is finalised the same
 	// way as if the user had typed exit.
 	go func() {
@@ -200,7 +200,7 @@ func Run(ctx context.Context, opts Options) (int, error) {
 				return
 			case <-ticker.C:
 				if store.StopRequested(sess.Dir()) {
-					_ = sess.Note("stopped by `tmon end`")
+					_ = sess.Note("stopped by `shao end`")
 					pty.Close()
 					return
 				}
@@ -287,7 +287,7 @@ type recorder struct {
 	stdout io.Writer
 	// screen filters what reaches the user's terminal. The recording keeps
 	// every byte; the screen must not receive the pseudoconsole's private
-	// negotiation with tmon.
+	// negotiation with shao.
 	screen modeFilter
 
 	lastWrite time.Time
@@ -309,7 +309,7 @@ func (r *recorder) process(chunk []byte) {
 	// The user's terminal is served first: recording is a bystander, and if
 	// anything below were slow or broken the session would still behave like
 	// an ordinary shell. The only thing withheld is the pseudoconsole's
-	// private mode negotiation, which is addressed to tmon and would break
+	// private mode negotiation, which is addressed to shao and would break
 	// the terminal if forwarded (see modefilter.go).
 	if visible := r.screen.Write(chunk); len(visible) > 0 {
 		_, _ = r.stdout.Write(visible)
@@ -490,17 +490,17 @@ func printBanner(w io.Writer, meta store.Meta, kind shellint.Kind, oneShot bool)
 	if oneShot {
 		what = "command"
 	}
-	fmt.Fprintf(w, "tmon: recording this %s as session %s", what, meta.ID)
+	fmt.Fprintf(w, "shao: recording this %s as session %s", what, meta.ID)
 	if meta.Label != "" {
 		fmt.Fprintf(w, " (label %s)", meta.Label)
 	}
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "tmon: buffer %s, redaction %s, command index %s\r\n",
+	fmt.Fprintf(w, "shao: buffer %s, redaction %s, command index %s\r\n",
 		humanSize(meta.MaxBytes),
 		onOff(meta.RedactionOn),
 		integrationNote(kind),
 	)
-	fmt.Fprintf(w, "tmon: exit the %s to stop recording\r\n\r\n", what)
+	fmt.Fprintf(w, "shao: exit the %s to stop recording\r\n\r\n", what)
 }
 
 func integrationNote(kind shellint.Kind) string {
@@ -520,12 +520,12 @@ func onOff(b bool) string {
 func printSummary(w io.Writer, sess *store.Session, exitCode int) {
 	info, err := store.Describe(sess.Dir())
 	if err != nil {
-		fmt.Fprintf(w, "\r\ntmon: session %s ended (exit %d)\r\n", sess.Meta().ID, exitCode)
+		fmt.Fprintf(w, "\r\nshao: session %s ended (exit %d)\r\n", sess.Meta().ID, exitCode)
 		return
 	}
-	fmt.Fprintf(w, "\r\ntmon: session %s ended (exit %d), %s captured, %d commands indexed\r\n",
+	fmt.Fprintf(w, "\r\nshao: session %s ended (exit %d), %s captured, %d commands indexed\r\n",
 		info.Meta.ID, exitCode, humanSize(info.RawSpan.Bytes()), info.Commands)
-	fmt.Fprintf(w, "tmon: ask about it with the MCP tools, or run `tmon tail %s`\r\n", info.Meta.ID)
+	fmt.Fprintf(w, "shao: ask about it with the MCP tools, or run `shao tail %s`\r\n", info.Meta.ID)
 }
 
 func humanSize(n int64) string {

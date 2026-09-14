@@ -1,20 +1,20 @@
-// Command tmon records terminal sessions and serves them, read-only, to an
+// Command shao records terminal sessions and serves them, read-only, to an
 // AI assistant over the Model Context Protocol.
 //
 // The shape of the tool in one view:
 //
-//	tmon start          turn monitoring on: automatic recording for new
+//	shao start          turn monitoring on: automatic recording for new
 //	                    terminals, the AI client configuration, and recording
 //	                    of this terminal
-//	tmon end            turn monitoring off, keeping everything recorded so far
-//	tmon shell          record just this terminal
-//	tmon run -- CMD     record one command
-//	tmon sessions       what has been recorded
-//	tmon tail           read a session yourself, without an AI
-//	tmon mcp            speak MCP on stdin/stdout, for a client that launches it
-//	tmon serve          serve MCP on a loopback HTTP port instead
-//	tmon host add       set up read-only access to a target host
-//	tmon host verify    prove that host really does refuse everything else
+//	shao end            turn monitoring off, keeping everything recorded so far
+//	shao shell          record just this terminal
+//	shao run -- CMD     record one command
+//	shao sessions       what has been recorded
+//	shao tail           read a session yourself, without an AI
+//	shao mcp            speak MCP on stdin/stdout, for a client that launches it
+//	shao serve          serve MCP on a loopback HTTP port instead
+//	shao host add       set up read-only access to a target host
+//	shao host verify    prove that host really does refuse everything else
 package main
 
 import (
@@ -25,67 +25,67 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"tmon/internal/config"
-	"tmon/internal/probe"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/probe"
 )
 
 // usage is deliberately short. Almost everyone needs three commands, and a
 // wall of options is its own kind of failure: it makes a tool look like it
-// demands decisions it does not. The rest is one `tmon help --all` away.
-const usage = `tmon records your terminal and lets an AI read it back, read-only.
+// demands decisions it does not. The rest is one `shao help --all` away.
+const usage = `shao records your terminal and lets an AI read it back, read-only.
 
-  tmon start                 record this terminal, make new terminals record
+  shao start                 record this terminal, make new terminals record
                              themselves, and print the AI client configuration
-  tmon start --port 7337     the same, plus serve MCP at a URL for clients
+  shao start --port 7337     the same, plus serve MCP at a URL for clients
                              that need one (stays up in the background)
-  tmon end                   stop all of it; everything recorded is kept
+  shao end                   stop all of it; everything recorded is kept
 
 Then just ask your AI why something failed.
 
-That is the whole thing. "tmon serve" exists to run the URL endpoint on its
+That is the whole thing. "shao serve" exists to run the URL endpoint on its
 own, without recording, but --port above covers the usual case.
 
-  tmon help --all     every command and option
+  shao help --all     every command and option
 `
 
-const usageAll = `tmon records your terminal and lets an AI read it back, read-only.
+const usageAll = `shao records your terminal and lets an AI read it back, read-only.
 
 Turning it on and off:
-  tmon start [--label NAME]                 monitoring on: hook, config, and
+  shao start [--label NAME]                 monitoring on: hook, config, and
                                             record this terminal
-  tmon start --port N [--bind A] [--allow C]   the same, plus a URL endpoint
-  tmon end [--keep-hook] [--keep-shells]    monitoring off; history is kept
+  shao start --port N [--bind A] [--allow C]   the same, plus a URL endpoint
+  shao end [--keep-hook] [--keep-shells]    monitoring off; history is kept
 
 Recording one thing only:
-  tmon shell [--label NAME] [--quiet]       record just this terminal
-  tmon run -- CMD ...                       record a single command
-  tmon hook install | uninstall | status    control automatic recording
+  shao shell [--label NAME] [--quiet]       record just this terminal
+  shao run -- CMD ...                       record a single command
+  shao hook install | uninstall | status    control automatic recording
 
 Reading it yourself:
-  tmon sessions [--all|--live|--hours N]    what has been recorded
-  tmon tail [SESSION] [--lines N] [--raw]   print the end of a session
-  tmon last-error [SESSION] [--lines N]     the most recent failed command
+  shao sessions [--all|--live|--hours N]    what has been recorded
+  shao tail [SESSION] [--lines N] [--raw]   print the end of a session
+  shao last-error [SESSION] [--lines N]     the most recent failed command
 
 AI client plumbing:
-  tmon mcp                                  speak MCP on stdin/stdout
-  tmon serve [--port N] [--foreground]      serve MCP over HTTP
-  tmon serve --status | --stop              check on, or stop, that endpoint
-  tmon serve --bind ADDR [--allow CIDR]     let another machine connect
-  tmon mcp-config [--format claude|json|http]
-  tmon token rotate                         replace the HTTP bearer token
+  shao mcp                                  speak MCP on stdin/stdout
+  shao serve [--port N] [--foreground]      serve MCP over HTTP
+  shao serve --status | --stop              check on, or stop, that endpoint
+  shao serve --bind ADDR [--allow CIDR]     let another machine connect
+  shao mcp-config [--format claude|json|http]
+  shao token rotate                         replace the HTTP bearer token
 
 Remote hosts (read-only environment facts):
-  tmon host add NAME --address ADDR [--user U] [--tier root|user]
-  tmon host list
-  tmon host verify NAME                     prove the host refuses anything else
-  tmon host query NAME [--aspects ...]
+  shao host add NAME --address ADDR [--user U] [--tier root|user]
+  shao host list
+  shao host verify NAME                     prove the host refuses anything else
+  shao host query NAME [--aspects ...]
 
 Other:
-  tmon config path | show | init
-  tmon version
+  shao config path | show | init
+  shao version
 
 Global:
-  --home DIR    use a different state directory (default ~/.tmon, or $TMON_HOME)
+  --home DIR    use a different state directory (default ~/.shao, or $SHAO_HOME)
 
 Sessions are named with --label and selected as "latest" (the default),
 "cwd:SUBSTRING", "label:NAME", "host:NAME", or a session id. With several
@@ -95,12 +95,12 @@ config file.
 `
 
 func main() {
-	// A copy of this binary installed on a target host as "tmon-probe" is
+	// A copy of this binary installed on a target host as "shao-probe" is
 	// launched by sshd as a forced command with no arguments, so the name it
 	// was invoked under is what selects probe mode.
-	if strings.HasPrefix(filepath.Base(os.Args[0]), "tmon-probe") {
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "shao-probe") {
 		if err := probe.Serve(os.Stdin, os.Stdout); err != nil {
-			fmt.Fprintln(os.Stderr, "tmon-probe:", err)
+			fmt.Fprintln(os.Stderr, "shao-probe:", err)
 			os.Exit(1)
 		}
 		return
@@ -140,7 +140,7 @@ func main() {
 		}
 		return
 	case "version", "--version":
-		fmt.Println("tmon", version())
+		fmt.Println("shao", version())
 		return
 	}
 
@@ -196,7 +196,7 @@ var buildVersion = "dev"
 // The link-time stamp is only present in binaries produced by
 // scripts/release.sh. `go install <module>@v1.2.3` compiles from source
 // without those flags, so the tag has to be recovered from the build info the
-// toolchain embeds instead -- otherwise a go-installed tmon reports "dev" and
+// toolchain embeds instead -- otherwise a go-installed shao reports "dev" and
 // a bug report cannot say which version it came from.
 func version() string {
 	if buildVersion != "dev" {
@@ -212,7 +212,7 @@ func version() string {
 
 // load reads the configuration and reports any warnings to stderr.
 //
-// Warnings go to stderr rather than stdout because `tmon mcp` speaks a
+// Warnings go to stderr rather than stdout because `shao mcp` speaks a
 // protocol on stdout, and a stray line there would break the client.
 func load(root string) (*config.Config, error) {
 	cfg, err := config.Load(root)
@@ -224,7 +224,7 @@ func load(root string) (*config.Config, error) {
 		return nil, fmt.Errorf("configuration problem: %w", err)
 	}
 	for _, w := range warnings {
-		fmt.Fprintln(os.Stderr, "tmon: warning:", w)
+		fmt.Fprintln(os.Stderr, "shao: warning:", w)
 	}
 	return cfg, nil
 }
@@ -233,13 +233,13 @@ func load(root string) (*config.Config, error) {
 // order, and returns the positionals.
 //
 // Go's flag package stops parsing at the first non-flag argument, so
-// `tmon tail deploy --lines 500` would silently ignore --lines and
-// `tmon host add web-1 --address 10.0.0.1` would lose every flag. Both read
+// `shao tail deploy --lines 500` would silently ignore --lines and
+// `shao host add web-1 --address 10.0.0.1` would lose every flag. Both read
 // perfectly naturally and are the forms people actually type, so the
 // arguments are separated here first and the flags handed over on their own.
 //
 // A literal "--" ends the permutation: everything after it is positional,
-// which is what `tmon run -- ./deploy.sh --flag` depends on.
+// which is what `shao run -- ./deploy.sh --flag` depends on.
 func parseFlags(fs *flag.FlagSet, args []string) []string {
 	var flagArgs, positional []string
 	for i := 0; i < len(args); i++ {
@@ -281,7 +281,7 @@ type boolFlag interface {
 }
 
 func fail(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "tmon: "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "shao: "+format+"\n", args...)
 	os.Exit(1)
 }
 

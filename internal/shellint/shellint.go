@@ -1,9 +1,9 @@
-// Package shellint installs command-boundary markers into the shell tmon
+// Package shellint installs command-boundary markers into the shell shao
 // launches, and parses them back out of the recorded stream.
 //
 // Without this, "why did that fail" can only be answered with "here are the
 // last N lines", which on a busy terminal is mostly unrelated noise. With it,
-// tmon knows where each command started, what it was, and what it exited
+// shao knows where each command started, what it was, and what it exited
 // with, so the question becomes a lookup: the last command whose exit code
 // was not zero, and exactly its output.
 //
@@ -21,16 +21,16 @@
 //	OSC 7 ; file://host/p  ST   the working directory, where a terminal emits it
 //
 // The working directory is what makes one recorded terminal distinguishable
-// from another, and a pseudoconsole on Windows never emits OSC 7, so tmon
+// from another, and a pseudoconsole on Windows never emits OSC 7, so shao
 // reports it from the prompt itself.
 //
 // OSC 133 is the widely implemented semantic-prompt convention, so emitting
 // it also gives well-behaved terminals working prompt navigation. OSC 7331 is
-// tmon's own; terminals ignore OSC codes they do not know. The command line is
+// shao's own; terminals ignore OSC codes they do not know. The command line is
 // base64 encoded so that a semicolon, a newline or an escape character inside
 // a command cannot break the framing.
 //
-// Because tmon starts the shell itself, none of this requires editing the
+// Because shao starts the shell itself, none of this requires editing the
 // user's rc files. Their real rc is sourced first and the hooks are appended
 // afterwards, so their prompt and aliases keep working.
 //
@@ -47,7 +47,7 @@ import (
 	"strconv"
 	"strings"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // Kind identifies which integration snippet applies to a shell.
@@ -126,7 +126,7 @@ func Prepare(kind Kind, root string) (Launch, error) {
 		if orig == "" {
 			orig, _ = os.UserHomeDir()
 		}
-		l.Env = []string{"ZDOTDIR=" + dir, "TMON_ORIG_ZDOTDIR=" + orig}
+		l.Env = []string{"ZDOTDIR=" + dir, "SHAO_ORIG_ZDOTDIR=" + orig}
 		l.Args = []string{"-i"}
 
 	case KindPwsh:
@@ -154,11 +154,11 @@ func rootTempDir(root string) string {
 // The DEBUG trap fires for every simple command, including ones run inside
 // PROMPT_COMMAND itself, so it is gated on a flag that only the prompt sets.
 // Without that gate a single interactive command would emit several starts.
-const bashSnippet = `# tmon shell integration (generated; not a file you need to keep)
+const bashSnippet = `# shao shell integration (generated; not a file you need to keep)
 if [ -f /etc/bash.bashrc ]; then . /etc/bash.bashrc; fi
 if [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc"; fi
 
-__tmon_b64() {
+__shao_b64() {
   if command -v base64 >/dev/null 2>&1; then
     printf '%s' "$1" | base64 | tr -d '\n'
   else
@@ -166,9 +166,9 @@ __tmon_b64() {
   fi
 }
 
-__tmon_emit_cmd() {
+__shao_emit_cmd() {
   local enc
-  enc=$(__tmon_b64 "$1")
+  enc=$(__shao_b64 "$1")
   if [ "$enc" = "RAW" ]; then
     # No base64 available: send the text with framing characters removed.
     printf '\033]7331;cmdraw;%s\007' "$(printf '%s' "$1" | tr -d '\033\007\n\r')"
@@ -177,19 +177,19 @@ __tmon_emit_cmd() {
   fi
 }
 
-__tmon_at_prompt=1
+__shao_at_prompt=1
 
-__tmon_preexec() {
+__shao_preexec() {
   [ -n "$COMP_LINE" ] && return          # tab completion, not a command
-  [ "$__tmon_at_prompt" != "1" ] && return
-  __tmon_at_prompt=0
-  __tmon_emit_cmd "$BASH_COMMAND"
+  [ "$__shao_at_prompt" != "1" ] && return
+  __shao_at_prompt=0
+  __shao_emit_cmd "$BASH_COMMAND"
   printf '\033]133;C\007'
 }
 
-__tmon_emit_cwd() {
+__shao_emit_cwd() {
   local enc
-  enc=$(__tmon_b64 "$PWD")
+  enc=$(__shao_b64 "$PWD")
   if [ "$enc" = "RAW" ]; then
     printf '\033]7331;cwdraw;%s\007' "$(printf '%s' "$PWD" | tr -d '\033\007\n\r')"
   else
@@ -197,34 +197,34 @@ __tmon_emit_cwd() {
   fi
 }
 
-__tmon_precmd() {
-  local __tmon_ec=$?
-  if [ "$__tmon_at_prompt" != "1" ]; then
-    printf '\033]133;D;%s\007' "$__tmon_ec"
+__shao_precmd() {
+  local __shao_ec=$?
+  if [ "$__shao_at_prompt" != "1" ]; then
+    printf '\033]133;D;%s\007' "$__shao_ec"
   fi
-  __tmon_at_prompt=1
+  __shao_at_prompt=1
   # Reported every prompt rather than once at startup: cd is exactly what
   # distinguishes one terminal from another, so a stale value is worse than
   # none.
-  __tmon_emit_cwd
+  __shao_emit_cwd
   printf '\033]133;A\007'
-  return $__tmon_ec
+  return $__shao_ec
 }
 
-trap '__tmon_preexec' DEBUG
+trap '__shao_preexec' DEBUG
 # Ours runs first so it observes the real exit status.
-PROMPT_COMMAND="__tmon_precmd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+PROMPT_COMMAND="__shao_precmd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 printf '\033]7331;ver;1\007'
 `
 
 // zshSnippet uses zsh's native preexec and precmd hooks, which are precise
 // and need none of the DEBUG-trap gymnastics bash requires.
-const zshSnippet = `# tmon shell integration (generated; not a file you need to keep)
-ZDOTDIR="${TMON_ORIG_ZDOTDIR:-$HOME}"
+const zshSnippet = `# shao shell integration (generated; not a file you need to keep)
+ZDOTDIR="${SHAO_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR
 [ -f "$ZDOTDIR/.zshrc" ] && source "$ZDOTDIR/.zshrc"
 
-__tmon_emit_cmd() {
+__shao_emit_cmd() {
   local enc
   if command -v base64 >/dev/null 2>&1; then
     enc=$(printf '%s' "$1" | base64 | tr -d '\n')
@@ -234,12 +234,12 @@ __tmon_emit_cmd() {
   fi
 }
 
-__tmon_preexec() {
-  __tmon_emit_cmd "$1"
+__shao_preexec() {
+  __shao_emit_cmd "$1"
   printf '\033]133;C\007'
 }
 
-__tmon_precmd() {
+__shao_precmd() {
   local ec=$?
   printf '\033]133;D;%s\007' "$ec"
   if command -v base64 >/dev/null 2>&1; then
@@ -252,11 +252,11 @@ __tmon_precmd() {
 
 autoload -Uz add-zsh-hook 2>/dev/null
 if command -v add-zsh-hook >/dev/null 2>&1; then
-  add-zsh-hook preexec __tmon_preexec
-  add-zsh-hook precmd __tmon_precmd
+  add-zsh-hook preexec __shao_preexec
+  add-zsh-hook precmd __shao_precmd
 else
-  preexec_functions+=(__tmon_preexec)
-  precmd_functions+=(__tmon_precmd)
+  preexec_functions+=(__shao_preexec)
+  precmd_functions+=(__shao_precmd)
 fi
 printf '\033]7331;ver;1\007'
 `
@@ -269,14 +269,14 @@ printf '\033]7331;ver;1\007'
 // start of that command's output. The practical difference is that a
 // PowerShell command block also contains the echoed command line, which is
 // usually welcome rather than a problem.
-const pwshSnippet = `# tmon shell integration (generated; not a file you need to keep)
-$global:__tmonLastHistoryId = -1
+const pwshSnippet = `# shao shell integration (generated; not a file you need to keep)
+$global:__shaoLastHistoryId = -1
 
-function global:__TmonEmit([string]$s) {
+function global:__ShaoEmit([string]$s) {
   [Console]::Out.Write($s)
 }
 
-function global:__TmonPrompt([bool]$ok, $lec) {
+function global:__ShaoPrompt([bool]$ok, $lec) {
   # Only a failed command carries a meaningful exit code. $LASTEXITCODE is
   # left over from the last native executable and is not reset by cmdlets, so
   # trusting it when $? is true reports a long-finished failure against a
@@ -292,35 +292,35 @@ function global:__TmonPrompt([bool]$ok, $lec) {
   $esc = [char]27
   $bel = [char]7
   $h = Get-History -Count 1 -ErrorAction SilentlyContinue
-  if ($null -ne $h -and $h.Id -ne $global:__tmonLastHistoryId) {
-    $global:__tmonLastHistoryId = $h.Id
+  if ($null -ne $h -and $h.Id -ne $global:__shaoLastHistoryId) {
+    $global:__shaoLastHistoryId = $h.Id
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($h.CommandLine)
     $b64 = [Convert]::ToBase64String($bytes)
-    __TmonEmit "$esc]7331;cmd;$b64$bel"
-    __TmonEmit "$esc]133;D;$ec$bel"
+    __ShaoEmit "$esc]7331;cmd;$b64$bel"
+    __ShaoEmit "$esc]133;D;$ec$bel"
   }
   $cwd = (Get-Location).Path
   $cwdB64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($cwd))
-  __TmonEmit "$esc]7331;cwd;$cwdB64$bel"
-  __TmonEmit "$esc]133;A$bel"
+  __ShaoEmit "$esc]7331;cwd;$cwdB64$bel"
+  __ShaoEmit "$esc]133;A$bel"
 }
 
 # Wrap whatever prompt the user profile defined rather than replacing it.
-$global:__tmonInnerPrompt = $function:prompt
+$global:__shaoInnerPrompt = $function:prompt
 function global:prompt {
   # These two must be the very first statements: any other statement, an
   # assignment included, overwrites $? with its own success, and the result of
   # the command the user actually ran is then gone for good.
   $ok = $?
   $lec = $global:LASTEXITCODE
-  __TmonPrompt $ok $lec
-  if ($null -ne $global:__tmonInnerPrompt) {
-    & $global:__tmonInnerPrompt
+  __ShaoPrompt $ok $lec
+  if ($null -ne $global:__shaoInnerPrompt) {
+    & $global:__shaoInnerPrompt
   } else {
     "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
   }
 }
-__TmonEmit "$([char]27)]7331;ver;1$([char]7)"
+__ShaoEmit "$([char]27)]7331;ver;1$([char]7)"
 `
 
 // DecodeCommand turns a marker payload back into command text.

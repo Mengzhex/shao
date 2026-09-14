@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // These tests drive the real listener over a real TCP connection rather than

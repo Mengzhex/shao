@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
+	"github.com/Mengzhex/shao/internal/config"
 )
 
 // Info is a session as seen by a reader: its metadata plus what its buffers
@@ -60,7 +60,7 @@ type Info struct {
 // recorder has died is not live, whatever its metadata says.
 func (i Info) Live() bool { return i.Meta.Live() && !i.Stale }
 
-// Describe renders one session for `tmon sessions`.
+// Describe renders one session for `shao sessions`.
 //
 // Two lines rather than one: with several terminals recorded, the working
 // directory and what is running are the only things that tell them apart, and
@@ -312,7 +312,7 @@ func Resolve(sessionsDir, selector string) (Info, error) {
 		return Info{}, err
 	}
 	if len(sessions) == 0 {
-		return Info{}, fmt.Errorf("no recorded sessions yet: start one with `tmon shell`")
+		return Info{}, fmt.Errorf("no recorded sessions yet: start one with `shao shell`")
 	}
 
 	sel := strings.TrimSpace(selector)
@@ -396,7 +396,7 @@ func uniqueMatch(sessions []Info, selector string, pred func(Info) bool) (Info, 
 	}
 	switch len(matches) {
 	case 0:
-		return Info{}, fmt.Errorf("no session matches %q (see `tmon sessions`)", selector)
+		return Info{}, fmt.Errorf("no session matches %q (see `shao sessions`)", selector)
 	case 1:
 		return matches[0], nil
 	}

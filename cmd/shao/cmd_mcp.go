@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/mcpsrv"
-	"tmon/internal/record"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/mcpsrv"
+	"github.com/Mengzhex/shao/internal/record"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // cmdMCP speaks MCP on stdin/stdout. An AI client launches this itself, so
@@ -40,7 +40,7 @@ func cmdMCP(cfg *config.Config, args []string) {
 
 // cmdStart is the one command a new user needs.
 //
-// It does the three things that have to happen for tmon to be useful, so that
+// It does the three things that have to happen for shao to be useful, so that
 // none of them has to be discovered separately: it makes every new terminal
 // record itself from now on, it prints the configuration to paste into an AI
 // client, and it starts recording the terminal it was run in.
@@ -61,7 +61,7 @@ func cmdStart(cfg *config.Config, args []string) {
 	parseFlags(fs, args)
 
 	// The endpoint is shared: one of them serves every recorded terminal, so
-	// the first `tmon start` brings it up and every later one finds it already
+	// the first `shao start` brings it up and every later one finds it already
 	// running. That is the whole answer to "how do I watch several terminals" --
 	// there is nothing per-terminal to configure, and nothing to clean up.
 	//
@@ -72,7 +72,7 @@ func cmdStart(cfg *config.Config, args []string) {
 		*port = cfg.MCP.HTTP.Port
 	}
 
-	// Running `tmon start` inside an already-recorded shell is not a mistake
+	// Running `shao start` inside an already-recorded shell is not a mistake
 	// worth an error: it is what someone types to check whether monitoring is
 	// on. So answer that question rather than just refusing.
 	//
@@ -80,12 +80,12 @@ func cmdStart(cfg *config.Config, args []string) {
 	// swallowed that flag twice now -- once as --http, then again as --port --
 	// which is what an early return does if it is written before the flags it
 	// has to account for. Anything added here needs handling above it.
-	if os.Getenv("TMON_RECORDING") == "1" {
+	if os.Getenv("SHAO_RECORDING") == "1" {
 		if wantEndpoint {
 			serveDetached(cfg, *port, *bind, *allow)
 			fmt.Println()
 		}
-		reportAlreadyOn(cfg, os.Getenv("TMON_SESSION_ID"))
+		reportAlreadyOn(cfg, os.Getenv("SHAO_SESSION_ID"))
 		return
 	}
 
@@ -132,7 +132,7 @@ func cmdStart(cfg *config.Config, args []string) {
 }
 
 // reportAlreadyOn answers "is monitoring on?" for someone who typed
-// `tmon start` in a shell that is already recorded.
+// `shao start` in a shell that is already recorded.
 //
 // It is a status report, not onboarding, so it does not reprint the client
 // configuration. Someone checking whether monitoring is on has already
@@ -155,7 +155,7 @@ func reportAlreadyOn(cfg *config.Config, sessionID string) {
 	if hookOn {
 		fmt.Println("  new terminals   record themselves automatically")
 	} else {
-		fmt.Println("  new terminals   NOT covered; run `tmon hook install` to include them")
+		fmt.Println("  new terminals   NOT covered; run `shao hook install` to include them")
 	}
 
 	// How much is actually captured matters more than the fact that a session
@@ -176,12 +176,12 @@ func reportAlreadyOn(cfg *config.Config, sessionID string) {
 	if state, running := mcpsrv.ReadServeState(cfg); running {
 		fmt.Printf("  URL endpoint    %s\n", state.URL)
 	} else {
-		fmt.Println("  URL endpoint    not running (it should be; check `tmon serve --status`)")
+		fmt.Println("  URL endpoint    not running (it should be; check `shao serve --status`)")
 	}
 
 	fmt.Println()
-	fmt.Println("Just ask your AI about what happened here. To stop, run `tmon end`.")
-	fmt.Println("Client configuration, if you need it again: `tmon mcp-config`.")
+	fmt.Println("Just ask your AI about what happened here. To stop, run `shao end`.")
+	fmt.Println("Client configuration, if you need it again: `shao mcp-config`.")
 }
 
 // cmdServe runs only the HTTP endpoint, for the case where the machine should
@@ -220,7 +220,7 @@ const noEndpoint = -1
 
 // serveChildEnv marks the backgrounded server process, so it can recognise
 // itself and refuse to background again.
-const serveChildEnv = "TMON_SERVE_CHILD"
+const serveChildEnv = "SHAO_SERVE_CHILD"
 
 // serveDetached starts the endpoint as a background process and returns.
 //
@@ -237,12 +237,12 @@ func serveDetached(cfg *config.Config, port int, bind, allow string) {
 	// that argument list an error rather than a fork bomb.
 	if os.Getenv(serveChildEnv) == "1" {
 		fail("internal error: a backgrounded endpoint tried to background itself.\n" +
-			"Run `tmon serve --foreground` directly.")
+			"Run `shao serve --foreground` directly.")
 	}
 
 	if state, running := mcpsrv.ReadServeState(cfg); running {
 		fmt.Printf("An endpoint is already running on %s (pid %d).\n", state.URL, state.PID)
-		fmt.Println("Stop it first with `tmon serve --stop`, or leave it as it is.")
+		fmt.Println("Stop it first with `shao serve --stop`, or leave it as it is.")
 		return
 	}
 
@@ -289,10 +289,10 @@ func serveDetached(cfg *config.Config, port int, bind, allow string) {
 			printDetachedReach(state, token)
 			fmt.Println()
 			fmt.Println("This endpoint records nothing. It only serves what was already")
-			fmt.Println("recorded, and only when your AI calls a tool. Recording is `tmon start`,")
+			fmt.Println("recorded, and only when your AI calls a tool. Recording is `shao start`,")
 			fmt.Println("run in each terminal you want captured.")
 			fmt.Println()
-			fmt.Println("The terminal is yours again. Stop the endpoint with `tmon serve --stop`.")
+			fmt.Println("The terminal is yours again. Stop the endpoint with `shao serve --stop`.")
 			return
 		}
 		time.Sleep(200 * time.Millisecond)
@@ -345,12 +345,12 @@ func serveStatus(cfg *config.Config) {
 			mcpsrv.ClearServeState(cfg)
 			return
 		}
-		fmt.Println("No endpoint running. Start one with `tmon serve`.")
+		fmt.Println("No endpoint running. Start one with `shao serve`.")
 		return
 	}
 	fmt.Printf("Serving on %s (pid %d, since %s).\n", state.URL, state.PID,
 		state.StartedAt.Format("2006-01-02 15:04:05"))
-	fmt.Println("Stop it with `tmon serve --stop`.")
+	fmt.Println("Stop it with `shao serve --stop`.")
 }
 
 // serveStop asks the endpoint to shut down and waits to confirm it did, rather
@@ -377,15 +377,15 @@ func serveStop(cfg *config.Config) {
 		time.Sleep(200 * time.Millisecond)
 	}
 	fail("the endpoint on %s (pid %d) did not stop within 5s.\n"+
-		"Stop that one process by pid if it is wedged. Do not kill tmon by image name:\n"+
-		"every recorded terminal runs a tmon process too, and killing those ends those shells.",
+		"Stop that one process by pid if it is wedged. Do not kill shao by image name:\n"+
+		"every recorded terminal runs a shao process too, and killing those ends those shells.",
 		state.URL, state.PID)
 }
 
 // serveUntilInterrupt starts the HTTP endpoint, prints how to reach it, and
 // blocks until interrupted.
 //
-// Shared by `tmon serve` and by `tmon start --http` in a shell that is already
+// Shared by `shao serve` and by `shao start --http` in a shell that is already
 // recorded, so that both print the same thing and neither can drift into
 // starting the endpoint differently.
 func serveUntilInterrupt(cfg *config.Config, port int, bind, allow string) {
@@ -410,27 +410,27 @@ func serveUntilInterrupt(cfg *config.Config, port int, bind, allow string) {
 
 	// Record where this endpoint is so it can be stopped precisely later.
 	if err := mcpsrv.WriteServeState(cfg, h, allow); err != nil {
-		fmt.Fprintf(os.Stderr, "tmon: warning: could not record the endpoint state: %v\n", err)
+		fmt.Fprintf(os.Stderr, "shao: warning: could not record the endpoint state: %v\n", err)
 	}
 	defer mcpsrv.ClearServeState(cfg)
 
 	// The URL is what this command exists to produce, so it comes first.
-	fmt.Println("tmon is serving MCP over HTTP. Point your AI client at one of these.")
+	fmt.Println("shao is serving MCP over HTTP. Point your AI client at one of these.")
 	fmt.Println()
 	printHTTPConfigs(h.URL(), token)
 	printReach(h, token, allow)
 	fmt.Println()
 	fmt.Println("This command only reads, and only when a tool is called. Recording is a")
-	fmt.Println("separate thing: `tmon start` in a terminal, which also covers new ones.")
+	fmt.Println("separate thing: `shao start` in a terminal, which also covers new ones.")
 	fmt.Println()
-	fmt.Println("Press Ctrl+C to stop serving, or `tmon serve --stop` from anywhere.")
-	fmt.Println("Never stop tmon by image name: every recorded terminal runs a tmon")
+	fmt.Println("Press Ctrl+C to stop serving, or `shao serve --stop` from anywhere.")
+	fmt.Println("Never stop shao by image name: every recorded terminal runs a shao")
 	fmt.Println("process too, and killing those ends those shells.")
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	// Also watch for `tmon serve --stop`, so stopping the endpoint never
+	// Also watch for `shao serve --stop`, so stopping the endpoint never
 	// requires finding and killing a process.
 	go func() {
 		ticker := time.NewTicker(200 * time.Millisecond)
@@ -453,7 +453,7 @@ func serveUntilInterrupt(cfg *config.Config, port int, bind, allow string) {
 	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = h.Close(shutdown)
-	fmt.Println("\ntmon: stopped serving.")
+	fmt.Println("\nshao: stopped serving.")
 }
 
 // printReach explains what can actually reach this endpoint, and what that
@@ -511,7 +511,7 @@ func cmdMCPConfig(cfg *config.Config, args []string) {
 		token, err := mcpsrv.LoadOrCreateToken(cfg)
 		check(err)
 		fmt.Println(httpConfigJSON(fmt.Sprintf("http://%s:%d/mcp", cfg.MCP.HTTP.Bind, cfg.MCP.HTTP.Port), token))
-		fmt.Fprintln(os.Stderr, "tmon: note: the port is only known while an HTTP endpoint is running; use `tmon serve` or `tmon start --http` to get the live URL.")
+		fmt.Fprintln(os.Stderr, "shao: note: the port is only known while an HTTP endpoint is running; use `shao serve` or `shao start --http` to get the live URL.")
 	default:
 		fail("unknown format %q", *format)
 	}
@@ -529,7 +529,7 @@ func printConfigs(cfg *config.Config, url, token string) {
 }
 
 func printStdioConfig() {
-	fmt.Println("Option A: the client launches tmon itself (simplest, no port, no token).")
+	fmt.Println("Option A: the client launches shao itself (simplest, no port, no token).")
 	fmt.Println("Paste into your MCP client configuration, for example Claude Desktop's")
 	fmt.Println("claude_desktop_config.json, a project .mcp.json, or Cursor's MCP settings:")
 	fmt.Println()
@@ -561,7 +561,7 @@ func printHTTPConfigs(url, token string) {
 func sseConfigJSON(sseURL, token string) string {
 	return mustJSON(map[string]any{
 		"mcpServers": map[string]any{
-			"tmon": map[string]any{
+			"shao": map[string]any{
 				"type": "sse",
 				"url":  sseURL,
 				"headers": map[string]any{
@@ -575,7 +575,7 @@ func sseConfigJSON(sseURL, token string) string {
 func stdioConfigJSON(exe string) string {
 	return mustJSON(map[string]any{
 		"mcpServers": map[string]any{
-			"tmon": map[string]any{
+			"shao": map[string]any{
 				"command": exe,
 				"args":    []string{"mcp"},
 			},
@@ -586,7 +586,7 @@ func stdioConfigJSON(exe string) string {
 func httpConfigJSON(url, token string) string {
 	return mustJSON(map[string]any{
 		"mcpServers": map[string]any{
-			"tmon": map[string]any{
+			"shao": map[string]any{
 				"type": "http",
 				"url":  url,
 				"headers": map[string]any{
@@ -616,7 +616,7 @@ func indent(s, prefix string) string {
 func executablePath() string {
 	exe, err := os.Executable()
 	if err != nil {
-		return "tmon"
+		return "shao"
 	}
 	return exe
 }
@@ -633,7 +633,7 @@ func cmdToken(cfg *config.Config, args []string) {
 		token, err := mcpsrv.RotateToken(cfg)
 		check(err)
 		fmt.Println(token)
-		fmt.Fprintln(os.Stderr, "tmon: the previous token no longer works; update any client configured with it.")
+		fmt.Fprintln(os.Stderr, "shao: the previous token no longer works; update any client configured with it.")
 	case "show":
 		token, err := mcpsrv.LoadOrCreateToken(cfg)
 		check(err)
@@ -654,8 +654,8 @@ func cmdConfig(cfg *config.Config, args []string) {
 	case "show":
 		data, err := os.ReadFile(cfg.ConfigPath())
 		if err != nil {
-			fmt.Printf("No config file at %s; tmon is using its defaults.\n", cfg.ConfigPath())
-			fmt.Println("Run `tmon config init` to write one you can edit.")
+			fmt.Printf("No config file at %s; shao is using its defaults.\n", cfg.ConfigPath())
+			fmt.Println("Run `shao config init` to write one you can edit.")
 			return
 		}
 		fmt.Print(string(data))

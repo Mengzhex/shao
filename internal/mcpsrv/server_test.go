@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"tmon/internal/config"
-	"tmon/internal/store"
+	"github.com/Mengzhex/shao/internal/config"
+	"github.com/Mengzhex/shao/internal/store"
 )
 
 // These tests drive the server the way a real client does — a scripted
@@ -176,10 +176,10 @@ func TestHandshake(t *testing.T) {
 	if _, hasTools := caps["tools"]; !hasTools {
 		t.Error("server did not advertise tools")
 	}
-	// Nothing about tmon is push-driven, so it must not claim otherwise.
+	// Nothing about shao is push-driven, so it must not claim otherwise.
 	for _, forbidden := range []string{"resources", "prompts", "logging", "completions"} {
 		if _, present := caps[forbidden]; present {
-			t.Errorf("server advertised %q; tmon exposes tools only", forbidden)
+			t.Errorf("server advertised %q; shao exposes tools only", forbidden)
 		}
 	}
 }
