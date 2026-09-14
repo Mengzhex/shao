@@ -573,6 +573,11 @@ typed on a command line or a script printed.
 | 8 | Multiple hosts | `hosts:` list, each with its own key, tier and verification state |
 | — | Works with most terminals | capture at the pty makes the terminal emulator irrelevant |
 
+## License
+
+MIT — see [LICENSE](LICENSE). Use it, change it, ship it; keep the copyright
+notice, and expect no warranty.
+
 ## Documentation
 
 - [docs/security-model.md](docs/security-model.md) — what "read-only" means here, and what it does not cover
